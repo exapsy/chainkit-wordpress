@@ -1,0 +1,50 @@
+{
+	"name": "chainkit-bitcoin-payment-button",
+	"version": "1.0.0",
+	"description": "Add a \"Pay with Bitcoin\" button and BIP21 QR code to any WordPress page or post. A free wedge from chainkit — the non-custodial Bitcoin payment processor.",
+	"author": "chainkit",
+	"license": "GPL-2.0-or-later",
+	"private": true,
+	"keywords": [
+		"wordpress",
+		"gutenberg",
+		"block",
+		"bitcoin",
+		"payments",
+		"bip21",
+		"qr"
+	],
+	"homepage": "https://chainkit.dev/tools/payment-link",
+	"files": [
+		"chainkit-bitcoin-payment-button.php",
+		"includes",
+		"build",
+		"languages",
+		"readme.txt",
+		"LICENSE"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/exapsy/chainkit-wordpress"
+	},
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"format": "wp-scripts format",
+		"lint:js": "wp-scripts lint-js",
+		"lint:css": "wp-scripts lint-style",
+		"test:unit": "wp-scripts test-unit-js",
+		"packages-update": "wp-scripts packages-update",
+		"plugin-zip": "wp-scripts plugin-zip",
+		"env": "wp-env",
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop"
+	},
+	"dependencies": {
+		"uqr": "^0.1.2"
+	},
+	"devDependencies": {
+		"@wordpress/env": "^10.0.0",
+		"@wordpress/scripts": "^30.0.0"
+	}
+}

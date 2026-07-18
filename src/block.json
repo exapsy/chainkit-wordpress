@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "chainkit/bitcoin-payment-button",
+	"version": "1.0.0",
+	"title": "Bitcoin Payment Button",
+	"category": "widgets",
+	"icon": "money-alt",
+	"description": "A \"Pay with Bitcoin\" button and BIP21 QR code — a real bitcoin: link that opens the visitor's wallet. Optional fixed BTC or live fiat-priced amount. No account, no custody.",
+	"keywords": [ "bitcoin", "btc", "payment", "donation", "qr", "bip21", "crypto" ],
+	"textdomain": "chainkit-bitcoin-payment-button",
+	"supports": {
+		"html": false,
+		"align": [ "left", "center", "right", "wide" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		}
+	},
+	"attributes": {
+		"address":     { "type": "string", "default": "" },
+		"amountMode":  { "type": "string", "default": "none" },
+		"amountBtc":   { "type": "string", "default": "" },
+		"amountFiat":  { "type": "string", "default": "" },
+		"currency":    { "type": "string", "default": "EUR" },
+		"label":       { "type": "string", "default": "" },
+		"message":     { "type": "string", "default": "" },
+		"buttonText":  { "type": "string", "default": "Pay with Bitcoin" },
+		"buttonAlign": { "type": "string", "default": "left" },
+		"theme":       { "type": "string", "default": "auto" },
+		"showQr":      { "type": "boolean", "default": true },
+		"showPowered": { "type": "boolean", "default": true }
+	},
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css",
+	"viewScript": "file:./view.js",
+	"render": "file:./render.php"
+}

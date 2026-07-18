@@ -1,0 +1,226 @@
+/**
+ * Frontend + shared styles for the Bitcoin Payment Button.
+ *
+ * Brand: navy #0f1c33, lime #bfdb00, off-white #f5f5f0. Theme-aware: the block
+ * has explicit light/dark variants plus an `auto` mode that follows the
+ * visitor's OS preference. Scoped under .chainkit-bpb so it never leaks
+ * into the host theme.
+ */
+
+$navy: #0f1c33;
+$lime: #bfdb00;
+$lime-deep: #6f8000;
+$offwhite: #f5f5f0;
+
+.chainkit-bpb {
+	--ck-bg: #{$offwhite};
+	--ck-fg: #{$navy};
+	--ck-muted: #55607a;
+	--ck-rule: #d9dad2;
+	--ck-btn-bg: #{$navy};
+	--ck-btn-fg: #{$offwhite};
+	--ck-code-bg: #fff;
+
+	display: inline-flex;
+	flex-direction: column;
+	gap: 10px;
+	max-width: 360px;
+	padding: 16px;
+	border: 1px solid var(--ck-rule);
+	border-radius: 12px;
+	background: var(--ck-bg);
+	color: var(--ck-fg);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	line-height: 1.4;
+	box-sizing: border-box;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// --- Dark theme (explicit) ---
+	&--theme-dark {
+		--ck-bg: #{$navy};
+		--ck-fg: #{$offwhite};
+		--ck-muted: #9aa4bd;
+		--ck-rule: #2a3859;
+		--ck-btn-bg: #{$lime};
+		--ck-btn-fg: #{$navy};
+		--ck-code-bg: #0b1526;
+	}
+
+	// --- Auto theme follows OS preference ---
+	&--theme-auto {
+
+		@media (prefers-color-scheme: dark) {
+			--ck-bg: #{$navy};
+			--ck-fg: #{$offwhite};
+			--ck-muted: #9aa4bd;
+			--ck-rule: #2a3859;
+			--ck-btn-bg: #{$lime};
+			--ck-btn-fg: #{$navy};
+			--ck-code-bg: #0b1526;
+		}
+	}
+
+	// --- Internal alignment ---
+	&--align-center {
+		margin-left: auto;
+		margin-right: auto;
+		align-items: center;
+		text-align: center;
+	}
+
+	&--align-right {
+		margin-left: auto;
+		align-items: flex-end;
+		text-align: right;
+	}
+
+	// --- Button ---
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 11px 18px;
+		border: 0;
+		border-radius: 9px;
+		background: var(--ck-btn-bg);
+		color: var(--ck-btn-fg);
+		font-size: 15px;
+		font-weight: 600;
+		text-decoration: none;
+		cursor: pointer;
+		transition: transform 0.08s ease, opacity 0.14s ease;
+
+		&:hover {
+			opacity: 0.92;
+		}
+
+		&:active {
+			transform: translateY(1px);
+		}
+
+		&:focus-visible {
+			outline: 2px solid $lime;
+			outline-offset: 2px;
+		}
+	}
+
+	&__glyph {
+		flex: 0 0 auto;
+	}
+
+	// --- Amount line ---
+	&__amount {
+		margin: 0;
+		font-size: 13px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+
+		&.is-approx {
+			font-weight: 500;
+			color: var(--ck-muted);
+		}
+	}
+
+	&__note {
+		display: inline-block;
+		margin-left: 6px;
+		font-size: 11px;
+		font-weight: 400;
+		color: var(--ck-muted);
+		font-style: italic;
+	}
+
+	// --- Address row ---
+	&__addr-row {
+		display: flex;
+		align-items: stretch;
+		gap: 6px;
+		width: 100%;
+	}
+
+	&__addr {
+		flex: 1;
+		min-width: 0;
+		overflow-x: auto;
+		white-space: nowrap;
+		padding: 7px 9px;
+		border: 1px solid var(--ck-rule);
+		border-radius: 7px;
+		background: var(--ck-code-bg);
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 12px;
+		color: var(--ck-fg);
+	}
+
+	&__copy {
+		flex: 0 0 auto;
+		padding: 0 12px;
+		border: 1px solid var(--ck-rule);
+		border-radius: 7px;
+		background: transparent;
+		color: var(--ck-fg);
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			border-color: $lime-deep;
+		}
+
+		&.is-copied {
+			color: $lime-deep;
+			border-color: $lime-deep;
+		}
+	}
+
+	// --- QR ---
+	&__qr-toggle {
+		align-self: flex-start;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		color: var(--ck-muted);
+		font-size: 12px;
+		text-decoration: underline;
+		cursor: pointer;
+
+		.chainkit-bpb--align-center & {
+			align-self: center;
+		}
+
+		.chainkit-bpb--align-right & {
+			align-self: flex-end;
+		}
+	}
+
+	&__qr {
+		width: 180px;
+		max-width: 100%;
+		padding: 12px;
+		border-radius: 10px;
+		background: #fff;
+
+		svg {
+			display: block;
+			width: 100%;
+			height: auto;
+		}
+	}
+
+	// --- Powered-by CTA ---
+	&__powered {
+		font-size: 11px;
+		color: var(--ck-muted);
+		text-decoration: none;
+		border-bottom: 1px solid transparent;
+
+		&:hover {
+			color: var(--ck-fg);
+			border-bottom-color: $lime;
+		}
+	}
+}

@@ -1,0 +1,40 @@
+/**
+ * Editor-only styles. The frontend styles (style.scss) already ship to the
+ * editor via block.json "style", so here we only add the editor preview chrome:
+ * the address preview line and the empty-state placeholder.
+ */
+
+.chainkit-bpb-editor {
+
+	&.chainkit-bpb {
+		// Let the preview breathe inside the editor canvas.
+		max-width: 380px;
+	}
+
+	.chainkit-bpb__btn {
+		// It's a preview span, not a link — keep it from looking clickable.
+		cursor: default;
+	}
+
+	.chainkit-bpb__addr-preview {
+		margin: 0;
+		width: 100%;
+
+		code {
+			display: block;
+			overflow-x: auto;
+			white-space: nowrap;
+			padding: 7px 9px;
+			border: 1px solid var(--ck-rule);
+			border-radius: 7px;
+			background: var(--ck-code-bg);
+			font-size: 12px;
+		}
+	}
+
+	.chainkit-bpb__placeholder {
+		margin: 0;
+		font-size: 13px;
+		color: var(--ck-muted);
+	}
+}

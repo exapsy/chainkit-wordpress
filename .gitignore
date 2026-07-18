@@ -1,0 +1,10 @@
+/node_modules/
+/vendor/
+*.log
+.DS_Store
+.wp-env.override.json
+
+# Build output is committed for the WordPress.org SVN mirror (see readme.txt),
+# but ignored locally until a release build is produced. Force-add build/ when
+# cutting a release: `git add -f build`.
+/build/
