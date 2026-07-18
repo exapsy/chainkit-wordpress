@@ -14,7 +14,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 24 ships npm 11, matching the npm that generates package-lock.json.
+          # Older npm (Node 20 = npm 10) records platform-specific optional deps
+          # differently and fails `npm ci` with spurious "missing from lock file".
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
