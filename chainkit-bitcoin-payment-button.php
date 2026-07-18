@@ -29,6 +29,44 @@ define( 'CHAINKIT_BPB_RATE_TTL', 5 * MINUTE_IN_SECONDS );
 
 // Pure BIP21 / address helpers (no WordPress APIs), shared with the unit tests.
 require_once CHAINKIT_BPB_DIR . 'includes/bip21.php';
+// Settings screen + global defaults (address, currency, theme, …).
+require_once CHAINKIT_BPB_DIR . 'includes/settings.php';
+
+/**
+ * Currency symbol for the no-JS server-rendered fiat reference. (In the browser,
+ * view.js uses Intl.NumberFormat with the visitor's locale for proper
+ * localization; this is only the fallback.)
+ *
+ * @param string $currency ISO code.
+ * @return string Symbol.
+ */
+function chainkit_bpb_currency_symbol( $currency ) {
+	$symbols = array(
+		'USD' => '$',
+		'EUR' => '€',
+		'GBP' => '£',
+		'JPY' => '¥',
+		'CAD' => 'CA$',
+	);
+	return isset( $symbols[ $currency ] ) ? $symbols[ $currency ] : '';
+}
+
+/**
+ * Format a fiat amount for the server-rendered (no-JS) reference line.
+ * JPY has no minor unit; everything else gets 2 decimals, dropped when whole.
+ *
+ * @param float  $amount   Amount.
+ * @param string $currency ISO code.
+ * @return string e.g. "£268" or "€49".
+ */
+function chainkit_bpb_format_fiat( $amount, $currency ) {
+	$decimals = ( 'JPY' === $currency ) ? 0 : 2;
+	$str      = number_format( $amount, $decimals, '.', ',' );
+	if ( $decimals > 0 ) {
+		$str = rtrim( rtrim( $str, '0' ), '.' );
+	}
+	return chainkit_bpb_currency_symbol( $currency ) . $str;
+}
 
 /**
  * Default block/shortcode attributes. Single source of truth so the shortcode
@@ -134,62 +172,82 @@ add_filter(
 );
 
 /**
- * Normalize raw attributes (from the block or the shortcode) against the
- * defaults and resolve the amount into BTC + a human note. Central so the block
- * and shortcode render identically.
+ * Normalize raw attributes (from the block or the shortcode) against the global
+ * settings + defaults, and resolve the amount into an on-chain BTC figure plus a
+ * fiat reference. Central so the block and shortcode render identically.
  *
  * @param array $atts Raw attributes.
  * @return array{
- *   addr:string, addr_valid:bool, uri:string, amount_text:string,
- *   approx:bool, button_text:string, align:string, theme:string,
- *   label:string, message:string, show_qr:bool, show_powered:bool
+ *   addr:string, uri:string, mode:string, btc:?float, btc_text:string,
+ *   ref_currency:string, ref_text:string, approx:bool, rates:array<string,float>,
+ *   button_text:string, align:string, theme:string, show_qr:bool, show_powered:bool
  * }|null Null when there is no usable address (nothing to render).
  */
 function chainkit_bpb_prepare( $atts ) {
-	$a = wp_parse_args( $atts, chainkit_bpb_defaults() );
+	$settings = chainkit_bpb_get_settings();
+	$a        = wp_parse_args( $atts, chainkit_bpb_defaults() );
 
+	// Fall back to the globally configured address when none is set on the block.
 	$addr = chainkit_bpb_sanitize_address( $a['address'] );
+	if ( '' === $addr ) {
+		$addr = chainkit_bpb_sanitize_address( $settings['address'] );
+	}
 	if ( '' === $addr || ! chainkit_bpb_addr_looks_valid( $addr ) ) {
 		return null;
 	}
 
-	$mode        = in_array( $a['amountMode'], array( 'none', 'btc', 'fiat' ), true ) ? $a['amountMode'] : 'none';
-	$btc         = null;
-	$amount_text = '';
-	$approx      = false;
+	$mode     = in_array( $a['amountMode'], array( 'none', 'btc', 'fiat' ), true ) ? $a['amountMode'] : 'none';
+	$currency = strtoupper( (string) $a['currency'] );
+	if ( ! in_array( $currency, chainkit_bpb_currencies(), true ) ) {
+		$currency = in_array( $settings['currency'], chainkit_bpb_currencies(), true ) ? $settings['currency'] : 'EUR';
+	}
+
+	// The rate table drives both the (fiat-mode) conversion and every button's
+	// switchable fiat reference. One cached fetch, shared. Map: CUR => float rate.
+	$rate_rows = chainkit_bpb_get_rates();
+	$rates     = array();
+	if ( is_array( $rate_rows ) ) {
+		foreach ( $rate_rows as $cur => $row ) {
+			if ( isset( $row['rate'] ) && $row['rate'] > 0 ) {
+				$rates[ $cur ] = (float) $row['rate'];
+			}
+		}
+	}
+
+	$btc      = null;   // On-chain amount encoded in the URI.
+	$btc_text = '';     // Big primary display, e.g. "0.005 BTC".
+	$approx   = false;  // True when a live rate is involved (label as approximate).
 
 	if ( 'btc' === $mode ) {
 		$v = is_numeric( $a['amountBtc'] ) ? (float) $a['amountBtc'] : 0.0;
 		if ( $v > 0 ) {
-			$btc         = $v;
-			$amount_text = chainkit_bpb_format_btc( $v ) . ' BTC';
+			$btc      = $v;
+			$btc_text = chainkit_bpb_format_btc( $v ) . ' BTC';
 		}
 	} elseif ( 'fiat' === $mode ) {
-		$currency = strtoupper( (string) $a['currency'] );
-		if ( ! in_array( $currency, chainkit_bpb_currencies(), true ) ) {
-			$currency = 'EUR';
-		}
 		$fiat = is_numeric( $a['amountFiat'] ) ? (float) $a['amountFiat'] : 0.0;
-		if ( $fiat > 0 ) {
-			$rates = chainkit_bpb_get_rates();
-			if ( isset( $rates[ $currency ]['rate'] ) && $rates[ $currency ]['rate'] > 0 ) {
-				$btc         = $fiat / $rates[ $currency ]['rate'];
-				$approx      = true;
-				$amount_text = sprintf(
-					/* translators: 1: fiat amount, 2: currency, 3: BTC amount. */
-					__( '%1$s %2$s ≈ %3$s BTC', 'chainkit-bitcoin-payment-button' ),
-					rtrim( rtrim( number_format( $fiat, 2, '.', '' ), '0' ), '.' ),
-					$currency,
-					chainkit_bpb_format_btc( $btc )
-				);
-			} else {
-				// Rate unreachable — degrade to an address-only request, honestly noted.
-				$amount_text = sprintf(
-					/* translators: %s: fiat amount + currency, e.g. "49 EUR". */
-					__( 'Rate for %s unavailable — pay any amount', 'chainkit-bitcoin-payment-button' ),
-					rtrim( rtrim( number_format( $fiat, 2, '.', '' ), '0' ), '.' ) . ' ' . $currency
-				);
-			}
+		if ( $fiat > 0 && isset( $rates[ $currency ] ) ) {
+			$btc      = $fiat / $rates[ $currency ];
+			$btc_text = chainkit_bpb_format_btc( $btc ) . ' BTC';
+			$approx   = true;
+		}
+	}
+
+	// Server-rendered (no-JS) fiat reference. view.js replaces it with a
+	// locale-guessed, switchable version. For a fixed amount this is the value of
+	// that amount; with no amount it's the price of 1 BTC.
+	$ref_text = '';
+	if ( isset( $rates[ $currency ] ) ) {
+		if ( null !== $btc ) {
+			$ref_text = '≈ ' . chainkit_bpb_format_fiat( $btc * $rates[ $currency ], $currency );
+			$approx   = true;
+		} elseif ( 'none' === $mode ) {
+			$ref_text = sprintf(
+				/* translators: %s: formatted price of one bitcoin, e.g. "£53,400". */
+				__( '1 BTC ≈ %s', 'chainkit-bitcoin-payment-button' ),
+				chainkit_bpb_format_fiat( $rates[ $currency ], $currency )
+			);
+			$approx = true;
 		}
 	}
 
@@ -198,20 +256,25 @@ function chainkit_bpb_prepare( $atts ) {
 
 	$button_text = trim( (string) $a['buttonText'] );
 	if ( '' === $button_text ) {
+		$button_text = trim( (string) $settings['button_text'] );
+	}
+	if ( '' === $button_text ) {
 		$button_text = __( 'Pay with Bitcoin', 'chainkit-bitcoin-payment-button' );
 	}
 
 	return array(
 		'addr'         => $addr,
-		'addr_valid'   => true,
 		'uri'          => chainkit_bpb_build_uri( $addr, $btc, $a['label'], $a['message'] ),
-		'amount_text'  => $amount_text,
+		'mode'         => $mode,
+		'btc'          => $btc,
+		'btc_text'     => $btc_text,
+		'ref_currency' => $currency,
+		'ref_text'     => $ref_text,
 		'approx'       => $approx,
+		'rates'        => $rates,
 		'button_text'  => $button_text,
 		'align'        => $align,
 		'theme'        => $theme,
-		'label'        => trim( (string) $a['label'] ),
-		'message'      => trim( (string) $a['message'] ),
 		'show_qr'      => (bool) filter_var( $a['showQr'], FILTER_VALIDATE_BOOLEAN ),
 		'show_powered' => (bool) filter_var( $a['showPowered'], FILTER_VALIDATE_BOOLEAN ),
 	);
@@ -238,7 +301,14 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 		esc_attr( $p['align'] )
 	);
 
-	$mark = '<svg class="chainkit-bpb__glyph" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="11" y="3" width="2" height="18" fill="currentColor"/><rect x="2" y="5" width="8" height="2" fill="currentColor"/><rect x="2" y="11" width="8" height="2" fill="currentColor"/><rect x="2" y="17" width="8" height="2" fill="currentColor"/><rect x="14" y="11" width="8" height="2" fill="#bfdb00"/></svg>';
+	// The chainkit mark: three ledger rows + a lime accent bar.
+	$mark = '<svg class="chainkit-bpb__mark" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="11" y="3" width="2" height="18" fill="currentColor"/><rect x="2" y="5" width="8" height="2" fill="currentColor"/><rect x="2" y="11" width="8" height="2" fill="currentColor"/><rect x="2" y="17" width="8" height="2" fill="currentColor"/><rect x="14" y="11" width="8" height="2" fill="var(--ck-lime)"/></svg>';
+	// A copy glyph (two offset sheets).
+	$copy_icon = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><rect x="8" y="8" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 16V4a2 2 0 0 1 2-2h10" stroke="currentColor" stroke-width="2"/></svg>';
+	// A wallet-open arrow.
+	$arrow = '<svg class="chainkit-bpb__btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+	$has_amount = ( '' !== $p['btc_text'] || '' !== $p['ref_text'] );
 
 	ob_start();
 	?>
@@ -249,38 +319,67 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 		echo $wrapper ? $wrapper : 'class="' . esc_attr( $classes ) . '"'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 		data-uri="<?php echo esc_attr( $p['uri'] ); ?>"
+		data-btc="<?php echo esc_attr( null !== $p['btc'] ? chainkit_bpb_format_btc( $p['btc'] ) : '' ); ?>"
+		data-mode="<?php echo esc_attr( $p['mode'] ); ?>"
+		data-ref-currency="<?php echo esc_attr( $p['ref_currency'] ); ?>"
+		data-rates="<?php echo esc_attr( (string) wp_json_encode( (object) $p['rates'] ) ); ?>"
 	>
-		<a class="chainkit-bpb__btn" href="<?php echo esc_url( $p['uri'], array( 'bitcoin' ) ); ?>">
+		<div class="chainkit-bpb__head">
+			<span class="chainkit-bpb__eyebrow">
+				<span class="chainkit-bpb__dot<?php echo $p['approx'] ? ' is-live' : ''; ?>" aria-hidden="true"></span>
+				<?php esc_html_e( 'Bitcoin payment', 'chainkit-bitcoin-payment-button' ); ?>
+			</span>
 			<?php echo $mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
-			<span class="chainkit-bpb__btn-text"><?php echo esc_html( $p['button_text'] ); ?></span>
-		</a>
+		</div>
 
-		<?php if ( '' !== $p['amount_text'] ) : ?>
-			<p class="chainkit-bpb__amount<?php echo $p['approx'] ? ' is-approx' : ''; ?>">
-				<?php echo esc_html( $p['amount_text'] ); ?>
-				<?php if ( $p['approx'] ) : ?>
-					<span class="chainkit-bpb__note"><?php esc_html_e( 'approximate — rate not locked', 'chainkit-bitcoin-payment-button' ); ?></span>
+		<?php if ( $has_amount ) : ?>
+			<div class="chainkit-bpb__amount">
+				<?php if ( '' !== $p['btc_text'] ) : ?>
+					<div class="chainkit-bpb__btc"><?php echo esc_html( $p['btc_text'] ); ?></div>
 				<?php endif; ?>
-			</p>
+				<?php if ( '' !== $p['ref_text'] ) : ?>
+					<div class="chainkit-bpb__fiat" data-fiat><?php echo esc_html( $p['ref_text'] ); ?></div>
+				<?php endif; ?>
+				<?php if ( $p['approx'] ) : ?>
+					<p class="chainkit-bpb__note">
+						<?php esc_html_e( 'Approximate — the rate is not locked.', 'chainkit-bitcoin-payment-button' ); ?>
+						<a href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow"><?php esc_html_e( 'Lock it with chainkit', 'chainkit-bitcoin-payment-button' ); ?></a>
+					</p>
+				<?php endif; ?>
+			</div>
 		<?php endif; ?>
 
+		<a class="chainkit-bpb__btn" href="<?php echo esc_url( $p['uri'], array( 'bitcoin' ) ); ?>">
+			<span class="chainkit-bpb__btn-text"><?php echo esc_html( $p['button_text'] ); ?></span>
+			<?php echo $arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
+		</a>
+
 		<div class="chainkit-bpb__addr-row">
-			<code class="chainkit-bpb__addr"><?php echo esc_html( $p['addr'] ); ?></code>
-			<button type="button" class="chainkit-bpb__copy" data-copy="<?php echo esc_attr( $p['addr'] ); ?>" aria-label="<?php esc_attr_e( 'Copy Bitcoin address', 'chainkit-bitcoin-payment-button' ); ?>">
-				<?php esc_html_e( 'Copy', 'chainkit-bitcoin-payment-button' ); ?>
+			<span class="chainkit-bpb__addr-label"><?php esc_html_e( 'to', 'chainkit-bitcoin-payment-button' ); ?></span>
+			<code class="chainkit-bpb__addr" data-full="<?php echo esc_attr( $p['addr'] ); ?>"><?php echo esc_html( $p['addr'] ); ?></code>
+			<button type="button" class="chainkit-bpb__copy" data-copy="<?php echo esc_attr( $p['addr'] ); ?>" title="<?php esc_attr_e( 'Copy address', 'chainkit-bitcoin-payment-button' ); ?>">
+				<?php echo $copy_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
+				<span class="screen-reader-text"><?php esc_html_e( 'Copy Bitcoin address', 'chainkit-bitcoin-payment-button' ); ?></span>
 			</button>
 		</div>
 
 		<?php if ( $p['show_qr'] ) : ?>
 			<button type="button" class="chainkit-bpb__qr-toggle" aria-expanded="false" hidden>
-				<?php esc_html_e( 'Show QR code', 'chainkit-bitcoin-payment-button' ); ?>
+				<span class="chainkit-bpb__qr-toggle-label"><?php esc_html_e( 'Show QR code', 'chainkit-bitcoin-payment-button' ); ?></span>
 			</button>
 			<div class="chainkit-bpb__qr" hidden aria-hidden="true"></div>
 		<?php endif; ?>
 
 		<?php if ( $p['show_powered'] ) : ?>
-			<a class="chainkit-bpb__powered" href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow">
-				<?php esc_html_e( 'Powered by chainkit — fiat-priced invoices, rate locked, settled to your wallet', 'chainkit-bitcoin-payment-button' ); ?>
+			<a class="chainkit-bpb__powered" href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow" title="<?php esc_attr_e( 'Fiat-priced invoices, rate locked, settled to your wallet', 'chainkit-bitcoin-payment-button' ); ?>">
+				<?php echo $mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
+				<span><?php
+					printf(
+						/* translators: %s: chainkit (brand name, kept as one styled word). */
+						esc_html__( 'Powered by %s', 'chainkit-bitcoin-payment-button' ),
+						'<strong>chainkit</strong>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static markup.
+					);
+				?></span>
 			</a>
 		<?php endif; ?>
 	</div>
@@ -330,20 +429,23 @@ add_action(
 add_shortcode(
 	'chainkit_bitcoin_button',
 	function ( $atts ) {
+		// Missing attributes inherit the global settings so a shortcode can be as
+		// short as `[chainkit_bitcoin_button]` once an address is configured.
+		$s    = chainkit_bpb_get_settings();
 		$atts = shortcode_atts(
 			array(
-				'address'      => '',
+				'address'      => $s['address'],
 				'amount_mode'  => 'none',
 				'amount_btc'   => '',
 				'amount_fiat'  => '',
-				'currency'     => 'EUR',
+				'currency'     => $s['currency'],
 				'label'        => '',
 				'message'      => '',
-				'button_text'  => '',
+				'button_text'  => $s['button_text'],
 				'align'        => 'left',
-				'theme'        => 'auto',
+				'theme'        => $s['theme'],
 				'show_qr'      => 'true',
-				'show_powered' => 'true',
+				'show_powered' => $s['show_powered'] ? 'true' : 'false',
 			),
 			$atts,
 			'chainkit_bitcoin_button'

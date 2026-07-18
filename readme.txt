@@ -20,6 +20,8 @@ Funds go **straight to your own Bitcoin address**. This plugin never touches you
 
 * **Gutenberg block** and **`[chainkit_bitcoin_button]` shortcode** (Classic editor / page builders).
 * **Three amount modes:** let the payer decide, a **fixed BTC amount**, or a **fiat amount** (USD, EUR, GBP, JPY, CAD) converted at the live rate.
+* **Local-currency display:** the amount shows a fiat reference guessed from the visitor's own browser language, and they can switch currencies — converted entirely in their browser, with nothing sent anywhere.
+* **Global settings:** set your Bitcoin address (and default currency, theme, and button text) once under Settings → Bitcoin Payment Button; every button uses it unless overridden.
 * **Scannable QR code** encoding the exact same payment request.
 * **Copy-address button** and a plain `bitcoin:` link that **works even with JavaScript disabled**.
 * Optional **label** and **message** carried into the wallet (e.g. your store name and an order number).
@@ -40,9 +42,9 @@ This plugin connects to one external service, and only in one specific case.
 
 **chainkit public rate API — https://api.chainkit.dev/v1/public/btc/rates**
 
-* **When:** only when a button is configured with **fiat** amount mode. Buttons using "payer decides" or a fixed BTC amount make **no external requests**.
-* **What is sent:** a plain HTTPS GET request for the current BTC→fiat rate table. **No visitor data, no personal information, no page or IP data is sent by the plugin** beyond what any HTTP request inherently includes. The request carries no cookies and no identifiers.
-* **Why:** to convert your fiat price (e.g. €49) into the BTC amount shown on the button. The request is made **server-side from your WordPress site** (not from each visitor's browser) and the result is **cached for ~5 minutes** in a WordPress transient, so at most a handful of requests are made per hour regardless of traffic.
+* **When:** when a page containing a button is rendered, to power the fiat amount and the local-currency reference. The rate table is fetched **once and cached for ~5 minutes** in a WordPress transient, so at most a handful of requests are made per hour no matter how much traffic the page gets.
+* **What is sent:** a plain HTTPS GET request for the current BTC→fiat rate table. **No visitor data, no personal information, and no page or IP data is sent by the plugin** beyond what any HTTP request inherently includes. The request carries no cookies and no identifiers.
+* **Made server-side, not per visitor:** your WordPress server makes the request, not the visitor's browser. The visitor's browser never contacts chainkit. Currency switching happens in the visitor's browser using the already-fetched rate table, and the default currency is guessed from the browser's own language setting — no geolocation, no IP lookup, nothing sent per visitor.
 * **If unreachable:** the button gracefully falls back to an address-only payment request and notes that the rate is unavailable.
 
 Service provided by chainkit. Terms: https://chainkit.dev/terms — Privacy policy: https://chainkit.dev/privacy
@@ -52,7 +54,8 @@ No other external service is contacted. QR codes are generated locally in the br
 == Installation ==
 
 1. Install and activate the plugin (from the Plugins screen, or upload the ZIP).
-2. In the block editor, add the **"Bitcoin Payment Button"** block and paste your Bitcoin address in the block settings. Or, in the Classic editor / a page builder, use the shortcode:
+2. (Optional) Go to **Settings → Bitcoin Payment Button** and enter your Bitcoin address once. Every button then uses it by default.
+3. In the block editor, add the **"Bitcoin Payment Button"** block. Or, in the Classic editor / a page builder, use the shortcode — as short as `[chainkit_bitcoin_button]` once your address is saved, or fully specified:
    `[chainkit_bitcoin_button address="bc1q..." amount_mode="fiat" amount_fiat="49" currency="EUR" label="My Store"]`
 3. Publish. Visitors can now pay you in Bitcoin.
 
@@ -80,7 +83,11 @@ Not with a static button — no page-embedded button can. The fiat conversion is
 
 = Does it work without JavaScript? =
 
-Yes. The `bitcoin:` link and the copyable address are rendered server-side, so the button works with JavaScript disabled. JavaScript only adds the QR code and the one-tap copy behaviour.
+Yes. The `bitcoin:` link and the copyable address are rendered server-side, so the button works with JavaScript disabled. JavaScript only adds the QR code, the one-tap copy, and the currency switcher.
+
+= Does it track my visitors? =
+
+No. The plugin sets no cookies and sends no visitor data anywhere. The exchange rate is fetched by your server (not the visitor's browser) and cached. The local-currency default is read from the visitor's browser language and converted in their browser — there is no geolocation or IP lookup.
 
 == Screenshots ==
 
@@ -91,7 +98,7 @@ Yes. The `bitcoin:` link and the copyable address are rendered server-side, so t
 == Changelog ==
 
 = 1.0.0 =
-* Initial release: Gutenberg block + `[chainkit_bitcoin_button]` shortcode, BIP21 link and QR, none/BTC/fiat amount modes, server-side cached fiat conversion, light/dark/auto themes, no-JS fallback.
+* Initial release: Gutenberg block + `[chainkit_bitcoin_button]` shortcode, BIP21 link and QR, none/BTC/fiat amount modes, server-side cached fiat conversion, in-browser local-currency switcher (no tracking), global settings screen, light/dark/auto themes, no-JS fallback.
 
 == Upgrade Notice ==
 

@@ -1,208 +1,375 @@
 /**
  * Frontend + shared styles for the Bitcoin Payment Button.
  *
- * Brand: navy #0f1c33, lime #bfdb00, off-white #f5f5f0. Theme-aware: the block
- * has explicit light/dark variants plus an `auto` mode that follows the
- * visitor's OS preference. Scoped under .chainkit-bpb so it never leaks
+ * A compact, embeddable payment widget. Design language: one lime accent spent
+ * deliberately (the top "ledger line" echoing chainkit's mark, a live-rate dot,
+ * focus rings, the currency-switch underline), a neutral high-contrast CTA, and
+ * a monospace amount that reads as precise and on-chain. Theme-aware
+ * (light / dark / auto) and scoped under .chainkit-bpb so nothing leaks
  * into the host theme.
  */
 
-$navy: #0f1c33;
 $lime: #bfdb00;
-$lime-deep: #6f8000;
-$offwhite: #f5f5f0;
+
+// Dark palette, shared by the explicit dark theme and the auto theme's
+// prefers-color-scheme branch.
+@mixin ck-dark {
+	--ck-surface: #0f1c33;
+	--ck-surface-2: #17263f;
+	--ck-fg: #f5f5f0;
+	--ck-fg-2: #9aa6c2;
+	--ck-fg-3: #69789a;
+	--ck-rule: #24344f;
+	--ck-cta-bg: #f5f5f0;
+	--ck-cta-fg: #0f1c33;
+	--ck-accent-ink: #bfdb00;
+	--ck-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
 
 .chainkit-bpb {
-	--ck-bg: #{$offwhite};
-	--ck-fg: #{$navy};
-	--ck-muted: #55607a;
-	--ck-rule: #d9dad2;
-	--ck-btn-bg: #{$navy};
-	--ck-btn-fg: #{$offwhite};
-	--ck-code-bg: #fff;
+	// ---- Light tokens (default) ----
+	--ck-lime: #{$lime};
+	--ck-surface: #fff;
+	--ck-surface-2: #f6f6f1;
+	--ck-fg: #0f1c33;
+	--ck-fg-2: #5a657e;
+	--ck-fg-3: #8b93a6;
+	--ck-rule: #e7e8e1;
+	--ck-cta-bg: #0f1c33;
+	--ck-cta-fg: #f5f5f0;
+	--ck-accent-ink: #6a7a00;
+	--ck-shadow: 0 1px 2px rgba(15, 28, 51, 0.06), 0 6px 20px rgba(15, 28, 51, 0.07);
 
-	display: inline-flex;
-	flex-direction: column;
-	gap: 10px;
-	max-width: 360px;
-	padding: 16px;
-	border: 1px solid var(--ck-rule);
-	border-radius: 12px;
-	background: var(--ck-bg);
-	color: var(--ck-fg);
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-	line-height: 1.4;
 	box-sizing: border-box;
+	position: relative;
+	display: block;
+	width: 100%;
+	max-width: 380px;
+	margin: 0;
+	padding: 20px;
+	overflow: hidden;
+	border: 1px solid var(--ck-rule);
+	border-radius: 16px;
+	background: var(--ck-surface);
+	color: var(--ck-fg);
+	box-shadow: var(--ck-shadow);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.45;
+	text-align: left;
 
 	* {
 		box-sizing: border-box;
 	}
 
-	// --- Dark theme (explicit) ---
-	&--theme-dark {
-		--ck-bg: #{$navy};
-		--ck-fg: #{$offwhite};
-		--ck-muted: #9aa4bd;
-		--ck-rule: #2a3859;
-		--ck-btn-bg: #{$lime};
-		--ck-btn-fg: #{$navy};
-		--ck-code-bg: #0b1526;
+	// The signature: a lime ledger line across the top edge.
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0 0 auto 0;
+		height: 3px;
+		background: var(--ck-lime);
 	}
 
-	// --- Auto theme follows OS preference ---
+	// ---- Dark tokens ----
+	&--theme-dark {
+
+		@include ck-dark;
+	}
+
 	&--theme-auto {
 
 		@media (prefers-color-scheme: dark) {
-			--ck-bg: #{$navy};
-			--ck-fg: #{$offwhite};
-			--ck-muted: #9aa4bd;
-			--ck-rule: #2a3859;
-			--ck-btn-bg: #{$lime};
-			--ck-btn-fg: #{$navy};
-			--ck-code-bg: #0b1526;
+
+			@include ck-dark;
 		}
 	}
 
-	// --- Internal alignment ---
+	// ---- Card placement ----
 	&--align-center {
 		margin-left: auto;
 		margin-right: auto;
-		align-items: center;
-		text-align: center;
 	}
 
 	&--align-right {
 		margin-left: auto;
-		align-items: flex-end;
-		text-align: right;
 	}
 
-	// --- Button ---
-	&__btn {
+	// ---- Header ----
+	&__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 16px;
+	}
+
+	&__eyebrow {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		padding: 11px 18px;
-		border: 0;
-		border-radius: 9px;
-		background: var(--ck-btn-bg);
-		color: var(--ck-btn-fg);
-		font-size: 15px;
+		gap: 7px;
+		font-size: 11px;
 		font-weight: 600;
-		text-decoration: none;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ck-fg-2);
+	}
+
+	&__dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--ck-fg-3);
+
+		&.is-live {
+			background: var(--ck-lime);
+			box-shadow: 0 0 0 0 rgba(191, 219, 0, 0.5);
+
+			@media (prefers-reduced-motion: no-preference) {
+				animation: chainkit-bpb-pulse 2s infinite;
+			}
+		}
+	}
+
+	&__mark {
+		flex: 0 0 auto;
+		color: var(--ck-fg-3);
+	}
+
+	// ---- Amount ----
+	&__amount {
+		margin-bottom: 18px;
+	}
+
+	&__btc {
+		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 30px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		line-height: 1.05;
+		font-variant-numeric: tabular-nums;
+		color: var(--ck-fg);
+	}
+
+	&__fiat {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin-top: 7px;
+		font-size: 14px;
+		color: var(--ck-fg-2);
+	}
+
+	&__fiat-prefix {
+		color: var(--ck-fg-2);
+	}
+
+	&__fiat-value {
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		color: var(--ck-fg);
+	}
+
+	&__fiat-select {
+		appearance: none;
+		-webkit-appearance: none;
+		margin-left: 2px;
+		padding: 0 14px 1px 2px;
+		border: 0;
+		border-bottom: 1px dashed var(--ck-lime);
+		border-radius: 0;
+		background: transparent;
+		color: var(--ck-accent-ink);
+		font: inherit;
+		font-weight: 600;
+		font-size: 13px;
 		cursor: pointer;
-		transition: transform 0.08s ease, opacity 0.14s ease;
-
-		&:hover {
-			opacity: 0.92;
-		}
-
-		&:active {
-			transform: translateY(1px);
-		}
+		background-image:
+			linear-gradient(45deg, transparent 50%, currentcolor 50%),
+			linear-gradient(135deg, currentcolor 50%, transparent 50%);
+		background-position: right 4px top 55%, right 0 top 55%;
+		background-size: 4px 4px, 4px 4px;
+		background-repeat: no-repeat;
 
 		&:focus-visible {
-			outline: 2px solid $lime;
+			outline: 2px solid var(--ck-lime);
 			outline-offset: 2px;
 		}
 	}
 
-	&__glyph {
-		flex: 0 0 auto;
-	}
+	&__note {
+		margin: 8px 0 0;
+		font-size: 11px;
+		line-height: 1.5;
+		color: var(--ck-fg-3);
 
-	// --- Amount line ---
-	&__amount {
-		margin: 0;
-		font-size: 13px;
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-
-		&.is-approx {
-			font-weight: 500;
-			color: var(--ck-muted);
+		a {
+			color: var(--ck-accent-ink);
+			text-decoration: underline;
+			text-underline-offset: 2px;
 		}
 	}
 
-	&__note {
-		display: inline-block;
-		margin-left: 6px;
-		font-size: 11px;
-		font-weight: 400;
-		color: var(--ck-muted);
-		font-style: italic;
+	// ---- CTA ----
+	&__btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		padding: 13px 18px;
+		border: 0;
+		border-radius: 11px;
+		background: var(--ck-cta-bg);
+		color: var(--ck-cta-fg);
+		font-size: 15px;
+		font-weight: 650;
+		text-decoration: none;
+		cursor: pointer;
+		transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+
+		&:hover {
+			opacity: 0.96;
+
+			@media (prefers-reduced-motion: no-preference) {
+				transform: translateY(-1px);
+				box-shadow: 0 6px 18px rgba(15, 28, 51, 0.18);
+			}
+		}
+
+		&:active {
+			transform: translateY(0);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--ck-lime);
+			outline-offset: 2px;
+		}
 	}
 
-	// --- Address row ---
+	&__btn-arrow {
+		flex: 0 0 auto;
+		transition: transform 0.15s ease;
+	}
+
+	// Nudge the arrow on CTA hover (declared after &__btn-arrow to keep
+	// stylelint's descending-specificity rule happy).
+	&__btn:hover &__btn-arrow {
+
+		@media (prefers-reduced-motion: no-preference) {
+			transform: translateX(2px);
+		}
+	}
+
+	// ---- Address ----
 	&__addr-row {
 		display: flex;
-		align-items: stretch;
-		gap: 6px;
-		width: 100%;
+		align-items: center;
+		gap: 8px;
+		margin-top: 14px;
+		padding: 8px 8px 8px 12px;
+		border: 1px solid var(--ck-rule);
+		border-radius: 10px;
+		background: var(--ck-surface-2);
+	}
+
+	&__addr-label {
+		flex: 0 0 auto;
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ck-fg-3);
 	}
 
 	&__addr {
 		flex: 1;
 		min-width: 0;
-		overflow-x: auto;
+		overflow: hidden;
 		white-space: nowrap;
-		padding: 7px 9px;
-		border: 1px solid var(--ck-rule);
-		border-radius: 7px;
-		background: var(--ck-code-bg);
-		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-		font-size: 12px;
+		text-overflow: ellipsis;
+		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+		font-size: 12.5px;
 		color: var(--ck-fg);
 	}
 
 	&__copy {
 		flex: 0 0 auto;
-		padding: 0 12px;
+		display: grid;
+		place-items: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
 		border: 1px solid var(--ck-rule);
-		border-radius: 7px;
+		border-radius: 8px;
+		background: var(--ck-surface);
+		color: var(--ck-fg-2);
+		cursor: pointer;
+		transition: color 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
+
+		&:hover {
+			color: var(--ck-fg);
+			border-color: var(--ck-fg-3);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--ck-lime);
+			outline-offset: 2px;
+		}
+
+		&.is-copied {
+			color: var(--ck-accent-ink);
+			border-color: var(--ck-accent-ink);
+		}
+	}
+
+	// ---- QR ----
+	&__qr-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 12px;
+		padding: 0;
+		border: 0;
 		background: transparent;
-		color: var(--ck-fg);
+		color: var(--ck-fg-2);
+		font: inherit;
 		font-size: 12px;
 		font-weight: 600;
 		cursor: pointer;
 
+		&::before {
+			content: "";
+			width: 0;
+			height: 0;
+			border-left: 4px solid currentcolor;
+			border-top: 4px solid transparent;
+			border-bottom: 4px solid transparent;
+			transition: transform 0.15s ease;
+		}
+
+		&.is-open::before {
+			transform: rotate(90deg);
+		}
+
 		&:hover {
-			border-color: $lime-deep;
+			color: var(--ck-fg);
 		}
 
-		&.is-copied {
-			color: $lime-deep;
-			border-color: $lime-deep;
-		}
-	}
-
-	// --- QR ---
-	&__qr-toggle {
-		align-self: flex-start;
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--ck-muted);
-		font-size: 12px;
-		text-decoration: underline;
-		cursor: pointer;
-
-		.chainkit-bpb--align-center & {
-			align-self: center;
-		}
-
-		.chainkit-bpb--align-right & {
-			align-self: flex-end;
+		&:focus-visible {
+			outline: 2px solid var(--ck-lime);
+			outline-offset: 2px;
 		}
 	}
 
 	&__qr {
-		width: 180px;
+		width: 168px;
 		max-width: 100%;
+		margin-top: 12px;
 		padding: 12px;
-		border-radius: 10px;
+		border-radius: 12px;
 		background: #fff;
+		border: 1px solid var(--ck-rule);
 
 		svg {
 			display: block;
@@ -211,16 +378,60 @@ $offwhite: #f5f5f0;
 		}
 	}
 
-	// --- Powered-by CTA ---
+	// ---- Powered by ----
 	&__powered {
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		margin-top: 16px;
+		padding-top: 14px;
+		border-top: 1px solid var(--ck-rule);
 		font-size: 11px;
-		color: var(--ck-muted);
+		color: var(--ck-fg-3);
 		text-decoration: none;
-		border-bottom: 1px solid transparent;
+
+		.chainkit-bpb__mark {
+			width: 15px;
+			height: 15px;
+		}
+
+		strong {
+			color: var(--ck-fg-2);
+			font-weight: 700;
+		}
 
 		&:hover {
-			color: var(--ck-fg);
-			border-bottom-color: $lime;
+			color: var(--ck-fg-2);
+
+			strong {
+				color: var(--ck-fg);
+			}
 		}
+	}
+}
+
+.chainkit-bpb .screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
+@keyframes chainkit-bpb-pulse {
+
+	0% {
+		box-shadow: 0 0 0 0 rgba(191, 219, 0, 0.5);
+	}
+
+	70% {
+		box-shadow: 0 0 0 5px rgba(191, 219, 0, 0);
+	}
+
+	100% {
+		box-shadow: 0 0 0 0 rgba(191, 219, 0, 0);
 	}
 }

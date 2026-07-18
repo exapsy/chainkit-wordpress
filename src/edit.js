@@ -361,73 +361,63 @@ export default function Edit( { attributes, setAttributes } ) {
 			<div { ...blockProps }>
 				{ uri ? (
 					<>
+						<div className="chainkit-bpb__head">
+							<span className="chainkit-bpb__eyebrow">
+								<span
+									className={ `chainkit-bpb__dot${
+										amountMode === 'fiat' ? ' is-live' : ''
+									}` }
+									aria-hidden="true"
+								/>
+								{ __(
+									'Bitcoin payment',
+									'chainkit-bitcoin-payment-button'
+								) }
+							</span>
+							<Mark />
+						</div>
+
+						{ ( btcAmount || approxNote ) && (
+							<div className="chainkit-bpb__amount">
+								{ btcAmount && (
+									<div className="chainkit-bpb__btc">
+										{ formatBtc( btcAmount ) } BTC
+									</div>
+								) }
+								{ approxNote && (
+									<div className="chainkit-bpb__fiat">
+										{ approxNote }
+									</div>
+								) }
+							</div>
+						) }
+
 						<span className="chainkit-bpb__btn" role="button">
-							<svg
-								className="chainkit-bpb__glyph"
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								aria-hidden="true"
-							>
-								<rect
-									x="11"
-									y="3"
-									width="2"
-									height="18"
-									fill="currentColor"
-								/>
-								<rect
-									x="2"
-									y="5"
-									width="8"
-									height="2"
-									fill="currentColor"
-								/>
-								<rect
-									x="2"
-									y="11"
-									width="8"
-									height="2"
-									fill="currentColor"
-								/>
-								<rect
-									x="2"
-									y="17"
-									width="8"
-									height="2"
-									fill="currentColor"
-								/>
-								<rect
-									x="14"
-									y="11"
-									width="8"
-									height="2"
-									fill="#bfdb00"
-								/>
-							</svg>
 							<span className="chainkit-bpb__btn-text">
 								{ buttonText }
 							</span>
 						</span>
-						{ amountMode === 'btc' && btcAmount && (
-							<p className="chainkit-bpb__amount">
-								{ formatBtc( btcAmount ) } BTC
-							</p>
-						) }
-						{ amountMode === 'fiat' && approxNote && (
-							<p className="chainkit-bpb__amount is-approx">
-								{ approxNote }
-							</p>
-						) }
-						<p className="chainkit-bpb__addr-preview">
-							<code>{ addr }</code>
-						</p>
-						{ showPowered && (
-							<span className="chainkit-bpb__powered">
+
+						<div className="chainkit-bpb__addr-row">
+							<span className="chainkit-bpb__addr-label">
 								{ __(
-									'Powered by chainkit',
+									'to',
 									'chainkit-bitcoin-payment-button'
 								) }
+							</span>
+							<code className="chainkit-bpb__addr">{ addr }</code>
+						</div>
+
+						{ showPowered && (
+							<span className="chainkit-bpb__powered">
+								<Mark />
+								<span>
+									{ __(
+										'Powered by',
+										'chainkit-bitcoin-payment-button'
+									) }
+									<strong>chainkit</strong>
+								</span>
 							</span>
 						) }
 					</>
@@ -441,5 +431,24 @@ export default function Edit( { attributes, setAttributes } ) {
 				) }
 			</div>
 		</>
+	);
+}
+
+/** The chainkit mark — three ledger rows and a lime accent bar. */
+function Mark() {
+	return (
+		<svg
+			className="chainkit-bpb__mark"
+			width="20"
+			height="20"
+			viewBox="0 0 24 24"
+			aria-hidden="true"
+		>
+			<rect x="11" y="3" width="2" height="18" fill="currentColor" />
+			<rect x="2" y="5" width="8" height="2" fill="currentColor" />
+			<rect x="2" y="11" width="8" height="2" fill="currentColor" />
+			<rect x="2" y="17" width="8" height="2" fill="currentColor" />
+			<rect x="14" y="11" width="8" height="2" fill="#bfdb00" />
+		</svg>
 	);
 }

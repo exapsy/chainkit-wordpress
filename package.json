@@ -17,6 +17,7 @@
 	"homepage": "https://chainkit.dev/tools/payment-link",
 	"files": [
 		"chainkit-bitcoin-payment-button.php",
+		"uninstall.php",
 		"includes",
 		"build",
 		"languages",
