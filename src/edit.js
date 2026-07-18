@@ -58,9 +58,8 @@ export default function Edit( { attributes, setAttributes } ) {
 				const map = {};
 				( body?.rates || [] ).forEach( ( row ) => {
 					if ( row?.currency && row?.rate ) {
-						map[ String( row.currency ).toUpperCase() ] = parseFloat(
-							row.rate
-						);
+						map[ String( row.currency ).toUpperCase() ] =
+							parseFloat( row.rate );
 					}
 				} );
 				setRates( map );
@@ -98,9 +97,14 @@ export default function Edit( { attributes, setAttributes } ) {
 	return (
 		<>
 			<InspectorControls>
-				<PanelBody title={ __( 'Payment', 'chainkit-bitcoin-payment-button' ) }>
+				<PanelBody
+					title={ __( 'Payment', 'chainkit-bitcoin-payment-button' ) }
+				>
 					<TextControl
-						label={ __( 'Bitcoin address', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Bitcoin address',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ address }
 						onChange={ ( v ) => setAttributes( { address: v } ) }
 						placeholder="bc1q… · 1… · 3…"
@@ -118,12 +122,33 @@ export default function Edit( { attributes, setAttributes } ) {
 					) }
 
 					<SelectControl
-						label={ __( 'Amount', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Amount',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ amountMode }
 						options={ [
-							{ label: __( 'Payer decides', 'chainkit-bitcoin-payment-button' ), value: 'none' },
-							{ label: __( 'Fixed BTC', 'chainkit-bitcoin-payment-button' ), value: 'btc' },
-							{ label: __( 'Fiat (live rate)', 'chainkit-bitcoin-payment-button' ), value: 'fiat' },
+							{
+								label: __(
+									'Payer decides',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'none',
+							},
+							{
+								label: __(
+									'Fixed BTC',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'btc',
+							},
+							{
+								label: __(
+									'Fiat (live rate)',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'fiat',
+							},
 						] }
 						onChange={ ( v ) => setAttributes( { amountMode: v } ) }
 						__nextHasNoMarginBottom
@@ -131,12 +156,17 @@ export default function Edit( { attributes, setAttributes } ) {
 
 					{ amountMode === 'btc' && (
 						<TextControl
-							label={ __( 'Amount (BTC)', 'chainkit-bitcoin-payment-button' ) }
+							label={ __(
+								'Amount (BTC)',
+								'chainkit-bitcoin-payment-button'
+							) }
 							type="number"
 							min="0"
 							step="0.00000001"
 							value={ amountBtc }
-							onChange={ ( v ) => setAttributes( { amountBtc: v } ) }
+							onChange={ ( v ) =>
+								setAttributes( { amountBtc: v } )
+							}
 							placeholder="0.00000000"
 							__nextHasNoMarginBottom
 						/>
@@ -145,24 +175,40 @@ export default function Edit( { attributes, setAttributes } ) {
 					{ amountMode === 'fiat' && (
 						<>
 							<TextControl
-								label={ __( 'Amount (fiat)', 'chainkit-bitcoin-payment-button' ) }
+								label={ __(
+									'Amount (fiat)',
+									'chainkit-bitcoin-payment-button'
+								) }
 								type="number"
 								min="0"
 								step="0.01"
 								value={ amountFiat }
-								onChange={ ( v ) => setAttributes( { amountFiat: v } ) }
+								onChange={ ( v ) =>
+									setAttributes( { amountFiat: v } )
+								}
 								placeholder="0.00"
 								__nextHasNoMarginBottom
 							/>
 							<SelectControl
-								label={ __( 'Currency', 'chainkit-bitcoin-payment-button' ) }
+								label={ __(
+									'Currency',
+									'chainkit-bitcoin-payment-button'
+								) }
 								value={ currency }
-								options={ CURRENCIES.map( ( c ) => ( { label: c, value: c } ) ) }
-								onChange={ ( v ) => setAttributes( { currency: v } ) }
+								options={ CURRENCIES.map( ( c ) => ( {
+									label: c,
+									value: c,
+								} ) ) }
+								onChange={ ( v ) =>
+									setAttributes( { currency: v } )
+								}
 								__nextHasNoMarginBottom
 							/>
 							{ rateError && (
-								<Notice status="warning" isDismissible={ false }>
+								<Notice
+									status="warning"
+									isDismissible={ false }
+								>
 									{ __(
 										'Live rates are unavailable in the editor. The button will still convert server-side when the page loads, or fall back to an address-only request.',
 										'chainkit-bitcoin-payment-button'
@@ -178,65 +224,135 @@ export default function Edit( { attributes, setAttributes } ) {
 					initialOpen={ false }
 				>
 					<TextControl
-						label={ __( 'Label (wallet)', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Label (wallet)',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ label }
 						onChange={ ( v ) => setAttributes( { label: v } ) }
-						placeholder={ __( 'Your store name', 'chainkit-bitcoin-payment-button' ) }
+						placeholder={ __(
+							'Your store name',
+							'chainkit-bitcoin-payment-button'
+						) }
 						maxLength={ 80 }
 						__nextHasNoMarginBottom
 					/>
 					<TextareaControl
-						label={ __( 'Message (wallet)', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Message (wallet)',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ message }
 						onChange={ ( v ) => setAttributes( { message: v } ) }
-						placeholder={ __( 'Order #1042', 'chainkit-bitcoin-payment-button' ) }
+						placeholder={ __(
+							'Order #1042',
+							'chainkit-bitcoin-payment-button'
+						) }
 						maxLength={ 120 }
 						__nextHasNoMarginBottom
 					/>
 				</PanelBody>
 
 				<PanelBody
-					title={ __( 'Appearance', 'chainkit-bitcoin-payment-button' ) }
+					title={ __(
+						'Appearance',
+						'chainkit-bitcoin-payment-button'
+					) }
 					initialOpen={ false }
 				>
 					<TextControl
-						label={ __( 'Button text', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Button text',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ buttonText }
 						onChange={ ( v ) => setAttributes( { buttonText: v } ) }
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Alignment', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Alignment',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ buttonAlign }
 						options={ [
-							{ label: __( 'Left', 'chainkit-bitcoin-payment-button' ), value: 'left' },
-							{ label: __( 'Center', 'chainkit-bitcoin-payment-button' ), value: 'center' },
-							{ label: __( 'Right', 'chainkit-bitcoin-payment-button' ), value: 'right' },
+							{
+								label: __(
+									'Left',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'left',
+							},
+							{
+								label: __(
+									'Center',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'center',
+							},
+							{
+								label: __(
+									'Right',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'right',
+							},
 						] }
-						onChange={ ( v ) => setAttributes( { buttonAlign: v } ) }
+						onChange={ ( v ) =>
+							setAttributes( { buttonAlign: v } )
+						}
 						__nextHasNoMarginBottom
 					/>
 					<SelectControl
-						label={ __( 'Theme', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Theme',
+							'chainkit-bitcoin-payment-button'
+						) }
 						value={ theme }
 						options={ [
-							{ label: __( 'Auto', 'chainkit-bitcoin-payment-button' ), value: 'auto' },
-							{ label: __( 'Light', 'chainkit-bitcoin-payment-button' ), value: 'light' },
-							{ label: __( 'Dark', 'chainkit-bitcoin-payment-button' ), value: 'dark' },
+							{
+								label: __(
+									'Auto',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'auto',
+							},
+							{
+								label: __(
+									'Light',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'light',
+							},
+							{
+								label: __(
+									'Dark',
+									'chainkit-bitcoin-payment-button'
+								),
+								value: 'dark',
+							},
 						] }
 						onChange={ ( v ) => setAttributes( { theme: v } ) }
 						__nextHasNoMarginBottom
 					/>
 					<ToggleControl
-						label={ __( 'Show QR code', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Show QR code',
+							'chainkit-bitcoin-payment-button'
+						) }
 						checked={ showQr }
 						onChange={ ( v ) => setAttributes( { showQr: v } ) }
 						__nextHasNoMarginBottom
 					/>
 					<ToggleControl
-						label={ __( 'Show "Powered by chainkit"', 'chainkit-bitcoin-payment-button' ) }
+						label={ __(
+							'Show "Powered by chainkit"',
+							'chainkit-bitcoin-payment-button'
+						) }
 						checked={ showPowered }
-						onChange={ ( v ) => setAttributes( { showPowered: v } ) }
+						onChange={ ( v ) =>
+							setAttributes( { showPowered: v } )
+						}
 						__nextHasNoMarginBottom
 					/>
 				</PanelBody>
@@ -253,26 +369,65 @@ export default function Edit( { attributes, setAttributes } ) {
 								viewBox="0 0 24 24"
 								aria-hidden="true"
 							>
-								<rect x="11" y="3" width="2" height="18" fill="currentColor" />
-								<rect x="2" y="5" width="8" height="2" fill="currentColor" />
-								<rect x="2" y="11" width="8" height="2" fill="currentColor" />
-								<rect x="2" y="17" width="8" height="2" fill="currentColor" />
-								<rect x="14" y="11" width="8" height="2" fill="#bfdb00" />
+								<rect
+									x="11"
+									y="3"
+									width="2"
+									height="18"
+									fill="currentColor"
+								/>
+								<rect
+									x="2"
+									y="5"
+									width="8"
+									height="2"
+									fill="currentColor"
+								/>
+								<rect
+									x="2"
+									y="11"
+									width="8"
+									height="2"
+									fill="currentColor"
+								/>
+								<rect
+									x="2"
+									y="17"
+									width="8"
+									height="2"
+									fill="currentColor"
+								/>
+								<rect
+									x="14"
+									y="11"
+									width="8"
+									height="2"
+									fill="#bfdb00"
+								/>
 							</svg>
-							<span className="chainkit-bpb__btn-text">{ buttonText }</span>
+							<span className="chainkit-bpb__btn-text">
+								{ buttonText }
+							</span>
 						</span>
-						{ ( amountMode === 'btc' && btcAmount ) && (
-							<p className="chainkit-bpb__amount">{ formatBtc( btcAmount ) } BTC</p>
+						{ amountMode === 'btc' && btcAmount && (
+							<p className="chainkit-bpb__amount">
+								{ formatBtc( btcAmount ) } BTC
+							</p>
 						) }
-						{ ( amountMode === 'fiat' && approxNote ) && (
-							<p className="chainkit-bpb__amount is-approx">{ approxNote }</p>
+						{ amountMode === 'fiat' && approxNote && (
+							<p className="chainkit-bpb__amount is-approx">
+								{ approxNote }
+							</p>
 						) }
 						<p className="chainkit-bpb__addr-preview">
 							<code>{ addr }</code>
 						</p>
 						{ showPowered && (
 							<span className="chainkit-bpb__powered">
-								{ __( 'Powered by chainkit', 'chainkit-bitcoin-payment-button' ) }
+								{ __(
+									'Powered by chainkit',
+									'chainkit-bitcoin-payment-button'
+								) }
 							</span>
 						) }
 					</>

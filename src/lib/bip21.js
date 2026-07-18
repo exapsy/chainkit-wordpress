@@ -58,7 +58,7 @@ export function buildURI( addr, btcAmount, label, message ) {
 		return '';
 	}
 	const params = [];
-	if ( btcAmount != null && btcAmount > 0 ) {
+	if ( btcAmount !== null && btcAmount > 0 ) {
 		params.push( 'amount=' + formatBtc( btcAmount ) );
 	}
 	if ( label && label.trim() ) {
@@ -67,5 +67,7 @@ export function buildURI( addr, btcAmount, label, message ) {
 	if ( message && message.trim() ) {
 		params.push( 'message=' + encodeURIComponent( message.trim() ) );
 	}
-	return 'bitcoin:' + addr + ( params.length ? '?' + params.join( '&' ) : '' );
+	return (
+		'bitcoin:' + addr + ( params.length ? '?' + params.join( '&' ) : '' )
+	);
 }

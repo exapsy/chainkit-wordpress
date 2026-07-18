@@ -43,6 +43,10 @@
 	"dependencies": {
 		"uqr": "^0.1.2"
 	},
+	"comment:overrides": "@wordpress/scripts 30 ships ts-api-utils@1, which reads TS-internal APIs removed in TypeScript 7 (the Go rewrite). Without this pin a transitive dep resolves typescript@7 and `wp-scripts lint-js` crashes with 'Cannot read properties of undefined (reading Intrinsic)'. Pin to the 5.x line.",
+	"overrides": {
+		"typescript": "^5.9.2"
+	},
 	"devDependencies": {
 		"@wordpress/env": "^10.0.0",
 		"@wordpress/scripts": "^30.0.0"

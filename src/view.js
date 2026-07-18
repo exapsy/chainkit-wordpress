@@ -8,6 +8,7 @@
  * The QR SVG encodes the URI as modules — no user text is placed as SVG markup,
  * so setting it via innerHTML is safe.
  */
+/* eslint-env browser */
 import { renderSVG } from 'uqr';
 
 function enhance( root ) {
@@ -24,7 +25,8 @@ function enhance( root ) {
 			const value = copyBtn.getAttribute( 'data-copy' ) || '';
 			try {
 				await navigator.clipboard.writeText( value );
-				copyBtn.textContent = copyBtn.getAttribute( 'data-copied' ) || 'Copied';
+				copyBtn.textContent =
+					copyBtn.getAttribute( 'data-copied' ) || 'Copied';
 				copyBtn.classList.add( 'is-copied' );
 				setTimeout( () => {
 					copyBtn.textContent = original;
@@ -77,9 +79,7 @@ function enhance( root ) {
 }
 
 function init() {
-	document
-		.querySelectorAll( '.chainkit-bpb[data-uri]' )
-		.forEach( enhance );
+	document.querySelectorAll( '.chainkit-bpb[data-uri]' ).forEach( enhance );
 }
 
 if ( document.readyState === 'loading' ) {

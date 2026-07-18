@@ -40,8 +40,10 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
+          # 7.4 is the plugin's minimum supported PHP; PHPUnit 9 is the newest
+          # line that still runs on it and matches tests/php/Bip21Test.php.
           php-version: '7.4'
-          tools: phpunit
+          tools: phpunit:9
 
       - name: PHP syntax check
         run: |
