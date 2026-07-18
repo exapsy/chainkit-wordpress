@@ -79,8 +79,10 @@ npx wp-env run cli wp transient delete chainkit_bpb_rates   # force a fresh rate
 ## Tests & checks (same ones CI runs)
 
 ```bash
+npm run type-check   # tsc --noEmit (frontend/editor is TypeScript)
 npm run build        # must compile clean
-npm run test:unit    # BIP21 JS unit tests
+npm run test:unit    # BIP21 unit tests
+npm run lint:js      # ESLint
 npm run lint:css     # stylelint
 
 # PHP tests need PHP + PHPUnit. Easiest via Docker:
@@ -88,23 +90,30 @@ docker run --rm -v "$PWD":/app -w /app php:7.4-cli sh -c \
   'curl -fsSL https://phar.phpunit.de/phpunit-9.phar -o /tmp/p.phar && php /tmp/p.phar --no-configuration tests/php/Bip21Test.php'
 ```
 
-> Heads-up: `npm run lint:js` currently crashes under Node 25 (a bundled
-> ESLint/@typescript-eslint incompatibility, not our code). CI pins Node 20 where
-> it passes. Locally, use Node 20 if you want to run it, or rely on `npm run start`
-> catching real errors.
+> Note: `@wordpress/scripts` 30 needs `typescript` pinned to the 5.x line (see
+> the `overrides` in `package.json`) — without it a transitive dep resolves
+> TypeScript 7 and `lint-js` crashes. The pin is already there; don't remove it.
 
 ## What to know about the code
+
+The frontend and editor are **TypeScript** (`src/*.ts`, `src/edit.tsx`), built by
+`@wordpress/scripts` (babel strips the types; `npm run type-check` runs `tsc`
+separately). The build emits `build/*.js`, which `block.json` references.
 
 The block is **dynamic** (server-rendered). One function does all the rendering
 and escaping — `chainkit_bpb_render()` in the main plugin file — and both the
 block (`src/render.php`) and the `[chainkit_bitcoin_button]` shortcode call it, so
 they always match.
 
-The BIP21 URI logic exists **twice on purpose**: `src/lib/bip21.js` (used by the
+The BIP21 URI logic exists **twice on purpose**: `src/lib/bip21.ts` (used by the
 editor preview + JS tests) and `includes/bip21.php` (used by the server render +
 PHP tests). They're kept byte-for-byte identical and each has a unit suite that
 pins the same known-good cases. If you touch one, touch the other and run both
 test suites.
+
+`src/view.ts` adds the QR code and the currency switcher on load; the `bitcoin:`
+link, amount, and address are server-rendered, so everything essential works
+without JavaScript (the QR is simply absent, not broken).
 
 ## Housekeeping
 

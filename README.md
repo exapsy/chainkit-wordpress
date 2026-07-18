@@ -46,9 +46,10 @@ Requires Node 18+ and [Docker](https://www.docker.com/) (for the local WordPress
 
 ```bash
 npm install
-npm run build          # compile src/ → build/
+npm run build          # compile src/ (TypeScript) → build/
 npm run start          # watch mode
-npm run test:unit      # BIP21 JS unit tests
+npm run type-check     # tsc --noEmit
+npm run test:unit      # BIP21 unit tests
 npm run lint:js        # ESLint
 npm run lint:css       # stylelint
 
@@ -56,13 +57,15 @@ npm run env:start      # spin up WordPress at http://localhost:8888 (wp-env / Do
 npm run env:stop
 ```
 
-The block is **dynamic** (server-rendered). All markup and escaping lives in
-`chainkit_bpb_render()` in the main plugin file; `src/render.php` (the block
-render) and the shortcode both delegate to it, so they render identically. The
-BIP21 URI logic is duplicated as a JS module (`src/lib/bip21.js`, used by the
-editor + tests) and a pure-PHP mirror (`includes/bip21.php`, used by the render
-+ tests); the two are kept byte-for-byte compatible and each has its own unit
-suite (`tests/bip21.test.js`, `tests/php/Bip21Test.php`).
+The frontend and editor are **TypeScript** (`src/*.ts`, `src/edit.tsx`), built by
+`@wordpress/scripts`. The block is **dynamic** (server-rendered): all markup and
+escaping lives in `chainkit_bpb_render()` in the main plugin file, and both
+`src/render.php` (the block render) and the `[chainkit_bitcoin_button]` shortcode
+delegate to it, so they render identically. The BIP21 URI logic is duplicated as
+a TypeScript module (`src/lib/bip21.ts`, used by the editor + tests) and a
+pure-PHP mirror (`includes/bip21.php`, used by the render + tests); the two are
+kept byte-for-byte compatible and each has its own unit suite
+(`tests/bip21.test.ts`, `tests/php/Bip21Test.php`).
 
 ## License
 

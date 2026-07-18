@@ -332,43 +332,48 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 			<?php echo $mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
 		</div>
 
-		<?php if ( $has_amount ) : ?>
-			<div class="chainkit-bpb__amount">
-				<?php if ( '' !== $p['btc_text'] ) : ?>
-					<div class="chainkit-bpb__btc"><?php echo esc_html( $p['btc_text'] ); ?></div>
-				<?php endif; ?>
-				<?php if ( '' !== $p['ref_text'] ) : ?>
-					<div class="chainkit-bpb__fiat" data-fiat><?php echo esc_html( $p['ref_text'] ); ?></div>
-				<?php endif; ?>
-				<?php if ( $p['approx'] ) : ?>
-					<p class="chainkit-bpb__note">
-						<?php esc_html_e( 'Approximate — the rate is not locked.', 'chainkit-bitcoin-payment-button' ); ?>
-						<a href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow"><?php esc_html_e( 'Lock it with chainkit', 'chainkit-bitcoin-payment-button' ); ?></a>
-					</p>
-				<?php endif; ?>
-			</div>
-		<?php endif; ?>
+		<div class="chainkit-bpb__body">
+			<?php if ( $p['show_qr'] ) : ?>
+				<?php // Shown as soon as JS renders it; hidden (empty, no gap) without JS. ?>
+				<div class="chainkit-bpb__qr" hidden aria-hidden="true">
+					<div class="chainkit-bpb__qr-svg"></div>
+					<span class="chainkit-bpb__qr-cap"><?php esc_html_e( 'Scan to pay', 'chainkit-bitcoin-payment-button' ); ?></span>
+				</div>
+			<?php endif; ?>
 
-		<a class="chainkit-bpb__btn" href="<?php echo esc_url( $p['uri'], array( 'bitcoin' ) ); ?>">
-			<span class="chainkit-bpb__btn-text"><?php echo esc_html( $p['button_text'] ); ?></span>
-			<?php echo $arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
-		</a>
+			<div class="chainkit-bpb__pay">
+				<?php if ( $has_amount ) : ?>
+					<div class="chainkit-bpb__amount">
+						<?php if ( '' !== $p['btc_text'] ) : ?>
+							<div class="chainkit-bpb__btc"><?php echo esc_html( $p['btc_text'] ); ?></div>
+						<?php endif; ?>
+						<?php if ( '' !== $p['ref_text'] ) : ?>
+							<div class="chainkit-bpb__fiat" data-fiat><?php echo esc_html( $p['ref_text'] ); ?></div>
+						<?php endif; ?>
+						<?php if ( $p['approx'] ) : ?>
+							<p class="chainkit-bpb__note">
+								<?php esc_html_e( 'Approximate — rate not locked.', 'chainkit-bitcoin-payment-button' ); ?>
+								<a href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow"><?php esc_html_e( 'Lock it with chainkit', 'chainkit-bitcoin-payment-button' ); ?></a>
+							</p>
+						<?php endif; ?>
+					</div>
+				<?php endif; ?>
+
+				<a class="chainkit-bpb__btn" href="<?php echo esc_url( $p['uri'], array( 'bitcoin' ) ); ?>">
+					<span class="chainkit-bpb__btn-text"><?php echo esc_html( $p['button_text'] ); ?></span>
+					<?php echo $arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
+				</a>
+			</div>
+		</div>
 
 		<div class="chainkit-bpb__addr-row">
-			<span class="chainkit-bpb__addr-label"><?php esc_html_e( 'to', 'chainkit-bitcoin-payment-button' ); ?></span>
-			<code class="chainkit-bpb__addr" data-full="<?php echo esc_attr( $p['addr'] ); ?>"><?php echo esc_html( $p['addr'] ); ?></code>
+			<span class="chainkit-bpb__addr-label"><?php esc_html_e( 'Pay to', 'chainkit-bitcoin-payment-button' ); ?></span>
+			<code class="chainkit-bpb__addr"><?php echo esc_html( $p['addr'] ); ?></code>
 			<button type="button" class="chainkit-bpb__copy" data-copy="<?php echo esc_attr( $p['addr'] ); ?>" title="<?php esc_attr_e( 'Copy address', 'chainkit-bitcoin-payment-button' ); ?>">
 				<?php echo $copy_icon; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static, trusted SVG. ?>
 				<span class="screen-reader-text"><?php esc_html_e( 'Copy Bitcoin address', 'chainkit-bitcoin-payment-button' ); ?></span>
 			</button>
 		</div>
-
-		<?php if ( $p['show_qr'] ) : ?>
-			<button type="button" class="chainkit-bpb__qr-toggle" aria-expanded="false" hidden>
-				<span class="chainkit-bpb__qr-toggle-label"><?php esc_html_e( 'Show QR code', 'chainkit-bitcoin-payment-button' ); ?></span>
-			</button>
-			<div class="chainkit-bpb__qr" hidden aria-hidden="true"></div>
-		<?php endif; ?>
 
 		<?php if ( $p['show_powered'] ) : ?>
 			<a class="chainkit-bpb__powered" href="<?php echo esc_url( CHAINKIT_BPB_SIGNUP_URL ); ?>" target="_blank" rel="noopener nofollow" title="<?php esc_attr_e( 'Fiat-priced invoices, rate locked, settled to your wallet', 'chainkit-bitcoin-payment-button' ); ?>">

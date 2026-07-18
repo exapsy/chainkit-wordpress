@@ -4,8 +4,9 @@
  * The frontend is server-rendered (render.php), so this component is only the
  * authoring experience: InspectorControls for every attribute plus a live
  * preview that mirrors what PHP will output. The preview builds the same BIP21
- * URI via the shared src/lib/bip21.js so what you see matches the frontend.
+ * URI via the shared src/lib/bip21.ts so what you see matches the frontend.
  */
+import type { BlockEditProps } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
 import {
@@ -20,10 +21,35 @@ import { useEffect, useState } from '@wordpress/element';
 
 import { addrLooksValid, buildURI, formatBtc } from './lib/bip21';
 
-const CURRENCIES = [ 'USD', 'EUR', 'GBP', 'JPY', 'CAD' ];
+type AmountMode = 'none' | 'btc' | 'fiat';
+type Theme = 'auto' | 'light' | 'dark';
+type Align = 'left' | 'center' | 'right';
+
+export interface Attributes {
+	address: string;
+	amountMode: AmountMode;
+	amountBtc: string;
+	amountFiat: string;
+	currency: string;
+	label: string;
+	message: string;
+	buttonText: string;
+	buttonAlign: Align;
+	theme: Theme;
+	showQr: boolean;
+	showPowered: boolean;
+	// Block attributes are an open string-keyed bag; the index signature lets
+	// this satisfy registerBlockType's `Record<string, unknown>` constraint.
+	[ key: string ]: unknown;
+}
+
+const CURRENCIES: string[] = [ 'USD', 'EUR', 'GBP', 'JPY', 'CAD' ];
 const RATES_URL = 'https://api.chainkit.dev/v1/public/btc/rates';
 
-export default function Edit( { attributes, setAttributes } ) {
+export default function Edit( {
+	attributes,
+	setAttributes,
+}: BlockEditProps< Attributes > ) {
 	const {
 		address,
 		amountMode,
@@ -39,11 +65,13 @@ export default function Edit( { attributes, setAttributes } ) {
 		showPowered,
 	} = attributes;
 
-	const [ rates, setRates ] = useState( null );
+	const [ rates, setRates ] = useState< Record< string, number > | null >(
+		null
+	);
 	const [ rateError, setRateError ] = useState( false );
 
-	// Fetch rates once, only to power the editor preview of fiat mode. The
-	// real conversion at publish time happens server-side in PHP.
+	// Fetch rates once, only to power the editor preview of fiat mode. The real
+	// conversion at publish time happens server-side in PHP.
 	useEffect( () => {
 		if ( amountMode !== 'fiat' || rates ) {
 			return;
@@ -51,19 +79,23 @@ export default function Edit( { attributes, setAttributes } ) {
 		let alive = true;
 		fetch( RATES_URL, { headers: { Accept: 'application/json' } } )
 			.then( ( r ) => ( r.ok ? r.json() : Promise.reject( r.status ) ) )
-			.then( ( body ) => {
-				if ( ! alive ) {
-					return;
-				}
-				const map = {};
-				( body?.rates || [] ).forEach( ( row ) => {
-					if ( row?.currency && row?.rate ) {
-						map[ String( row.currency ).toUpperCase() ] =
-							parseFloat( row.rate );
+			.then(
+				( body: {
+					rates?: Array< { currency?: string; rate?: string } >;
+				} ) => {
+					if ( ! alive ) {
+						return;
 					}
-				} );
-				setRates( map );
-			} )
+					const map: Record< string, number > = {};
+					( body?.rates || [] ).forEach( ( row ) => {
+						if ( row?.currency && row?.rate ) {
+							map[ String( row.currency ).toUpperCase() ] =
+								parseFloat( row.rate );
+						}
+					} );
+					setRates( map );
+				}
+			)
 			.catch( () => alive && setRateError( true ) );
 		return () => {
 			alive = false;
@@ -74,7 +106,7 @@ export default function Edit( { attributes, setAttributes } ) {
 	const addrValid = addrLooksValid( addr );
 
 	// Resolve the preview BTC amount from the active mode.
-	let btcAmount = null;
+	let btcAmount: number | null = null;
 	let approxNote = '';
 	if ( amountMode === 'btc' ) {
 		const v = parseFloat( amountBtc );
@@ -82,7 +114,7 @@ export default function Edit( { attributes, setAttributes } ) {
 	} else if ( amountMode === 'fiat' ) {
 		const f = parseFloat( amountFiat );
 		const rate = rates?.[ currency ];
-		if ( isFinite( f ) && f > 0 && rate > 0 ) {
+		if ( isFinite( f ) && f > 0 && rate && rate > 0 ) {
 			btcAmount = f / rate;
 			approxNote = `≈ ${ formatBtc( btcAmount ) } BTC · approximate`;
 		}
@@ -150,7 +182,9 @@ export default function Edit( { attributes, setAttributes } ) {
 								value: 'fiat',
 							},
 						] }
-						onChange={ ( v ) => setAttributes( { amountMode: v } ) }
+						onChange={ ( v ) =>
+							setAttributes( { amountMode: v as AmountMode } )
+						}
 						__nextHasNoMarginBottom
 					/>
 
@@ -299,7 +333,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							},
 						] }
 						onChange={ ( v ) =>
-							setAttributes( { buttonAlign: v } )
+							setAttributes( { buttonAlign: v as Align } )
 						}
 						__nextHasNoMarginBottom
 					/>
@@ -332,7 +366,9 @@ export default function Edit( { attributes, setAttributes } ) {
 								value: 'dark',
 							},
 						] }
-						onChange={ ( v ) => setAttributes( { theme: v } ) }
+						onChange={ ( v ) =>
+							setAttributes( { theme: v as Theme } )
+						}
 						__nextHasNoMarginBottom
 					/>
 					<ToggleControl
@@ -377,31 +413,45 @@ export default function Edit( { attributes, setAttributes } ) {
 							<Mark />
 						</div>
 
-						{ ( btcAmount || approxNote ) && (
-							<div className="chainkit-bpb__amount">
-								{ btcAmount && (
-									<div className="chainkit-bpb__btc">
-										{ formatBtc( btcAmount ) } BTC
+						<div className="chainkit-bpb__body">
+							{ showQr && (
+								<div className="chainkit-bpb__qr-preview">
+									{ __(
+										'QR',
+										'chainkit-bitcoin-payment-button'
+									) }
+								</div>
+							) }
+							<div className="chainkit-bpb__pay">
+								{ ( btcAmount || approxNote ) && (
+									<div className="chainkit-bpb__amount">
+										{ btcAmount && (
+											<div className="chainkit-bpb__btc">
+												{ formatBtc( btcAmount ) } BTC
+											</div>
+										) }
+										{ approxNote && (
+											<div className="chainkit-bpb__fiat">
+												{ approxNote }
+											</div>
+										) }
 									</div>
 								) }
-								{ approxNote && (
-									<div className="chainkit-bpb__fiat">
-										{ approxNote }
-									</div>
-								) }
+								<span
+									className="chainkit-bpb__btn"
+									role="button"
+								>
+									<span className="chainkit-bpb__btn-text">
+										{ buttonText }
+									</span>
+								</span>
 							</div>
-						) }
-
-						<span className="chainkit-bpb__btn" role="button">
-							<span className="chainkit-bpb__btn-text">
-								{ buttonText }
-							</span>
-						</span>
+						</div>
 
 						<div className="chainkit-bpb__addr-row">
 							<span className="chainkit-bpb__addr-label">
 								{ __(
-									'to',
+									'Pay to',
 									'chainkit-bitcoin-payment-button'
 								) }
 							</span>
@@ -424,7 +474,7 @@ export default function Edit( { attributes, setAttributes } ) {
 				) : (
 					<p className="chainkit-bpb__placeholder">
 						{ __(
-							'Enter a Bitcoin address in the block settings to render the button.',
+							'Enter a Bitcoin address here or under Settings → Bitcoin Payment Button to render the button.',
 							'chainkit-bitcoin-payment-button'
 						) }
 					</p>

@@ -3,7 +3,9 @@
  *
  * The button link, amount, and address are already in the server-rendered HTML
  * and work with JavaScript disabled. This script only *adds*:
- *   - a QR code (rendered from the BIP21 URI in `data-uri` via uqr),
+ *   - the QR code (rendered from the BIP21 URI in `data-uri` via uqr and shown
+ *     immediately — it's a primary way to pay, so it isn't hidden behind a
+ *     toggle; it's simply absent when JavaScript is off),
  *   - a copy-address button,
  *   - middle-truncation of the long address,
  *   - a switchable fiat reference, defaulting to the visitor's browser locale
@@ -13,7 +15,6 @@
  * The QR SVG encodes the URI as modules — no user text is placed as SVG markup,
  * so setting it via innerHTML is safe.
  */
-/* eslint-env browser */
 import { renderSVG } from 'uqr';
 
 /**
@@ -22,7 +23,7 @@ import { renderSVG } from 'uqr';
  * map to EUR; anything unmapped falls back to the server's default currency.
  */
 const SUPPORTED = [ 'USD', 'EUR', 'GBP', 'JPY', 'CAD' ];
-const REGION_CCY = {
+const REGION_CCY: Record< string, string > = {
 	US: 'USD',
 	CA: 'CAD',
 	GB: 'GBP',
@@ -48,7 +49,7 @@ const REGION_CCY = {
 	SK: 'EUR',
 };
 
-function guessCurrency( fallback ) {
+function guessCurrency( fallback: string ): string {
 	const lang = ( navigator.language || '' ).toUpperCase();
 	const region = lang.split( '-' )[ 1 ];
 	if ( region && REGION_CCY[ region ] ) {
@@ -60,7 +61,7 @@ function guessCurrency( fallback ) {
 	return fallback;
 }
 
-function formatFiat( value, currency ) {
+function formatFiat( value: number, currency: string ): string {
 	try {
 		return new Intl.NumberFormat( navigator.language || 'en', {
 			style: 'currency',
@@ -74,12 +75,11 @@ function formatFiat( value, currency ) {
 
 /**
  * Turn the server-rendered static fiat line into a switchable reference.
- *
- * @param {HTMLElement} root The widget root.
- * @param {HTMLElement} fiat The `.chainkit-bpb__fiat` element.
+ * @param root
+ * @param fiat
  */
-function enhanceFiat( root, fiat ) {
-	let rates;
+function enhanceFiat( root: HTMLElement, fiat: HTMLElement ): void {
+	let rates: Record< string, number >;
 	try {
 		rates = JSON.parse( root.getAttribute( 'data-rates' ) || '{}' );
 	} catch ( e ) {
@@ -90,7 +90,7 @@ function enhanceFiat( root, fiat ) {
 		return; // Nothing to switch between; keep the static server text.
 	}
 
-	const btc = parseFloat( root.getAttribute( 'data-btc' ) );
+	const btc = parseFloat( root.getAttribute( 'data-btc' ) || '' );
 	const hasBtc = isFinite( btc ) && btc > 0;
 	const isPrice = ! hasBtc; // "none" mode → show the price of 1 BTC.
 	const fallback = root.getAttribute( 'data-ref-currency' ) || 'EUR';
@@ -131,26 +131,8 @@ function enhanceFiat( root, fiat ) {
 	fiat.classList.add( 'is-interactive' );
 }
 
-/**
- * Shorten a long address to first…last, keeping the full value available for
- * copy and in the title. Falls back to the full string on short inputs.
- *
- * @param {HTMLElement} root The widget root.
- */
-function truncateAddress( root ) {
-	const el = root.querySelector( '.chainkit-bpb__addr' );
-	if ( ! el ) {
-		return;
-	}
-	const full = el.getAttribute( 'data-full' ) || el.textContent;
-	el.title = full;
-	if ( full.length > 21 ) {
-		el.textContent = `${ full.slice( 0, 9 ) }…${ full.slice( -8 ) }`;
-	}
-}
-
-function enhanceCopy( root ) {
-	const copyBtn = root.querySelector( '.chainkit-bpb__copy' );
+function enhanceCopy( root: HTMLElement ): void {
+	const copyBtn = root.querySelector< HTMLElement >( '.chainkit-bpb__copy' );
 	if ( ! copyBtn || ! navigator.clipboard ) {
 		return;
 	}
@@ -166,63 +148,43 @@ function enhanceCopy( root ) {
 	} );
 }
 
-function enhanceQr( root, uri ) {
-	const qr = root.querySelector( '.chainkit-bpb__qr' );
-	const toggle = root.querySelector( '.chainkit-bpb__qr-toggle' );
-	const labelEl =
-		toggle && toggle.querySelector( '.chainkit-bpb__qr-toggle-label' );
-	if ( ! qr || ! toggle ) {
+/**
+ * Render the QR from the URI and reveal it (no-JS leaves it hidden/empty).
+ * @param root
+ * @param uri
+ */
+function renderQr( root: HTMLElement, uri: string ): void {
+	const wrap = root.querySelector< HTMLElement >( '.chainkit-bpb__qr' );
+	const host = root.querySelector< HTMLElement >( '.chainkit-bpb__qr-svg' );
+	if ( ! wrap || ! host ) {
 		return;
 	}
-
-	let rendered = false;
-	const render = () => {
-		if ( rendered ) {
-			return;
-		}
-		try {
-			qr.innerHTML = renderSVG( uri, { border: 2 } );
-			rendered = true;
-		} catch ( e ) {
-			toggle.hidden = true;
-		}
-	};
-
-	toggle.hidden = false; // No-JS hides it; reveal now that we can build a QR.
-	toggle.addEventListener( 'click', () => {
-		const willShow = qr.hasAttribute( 'hidden' );
-		if ( willShow ) {
-			render();
-			qr.removeAttribute( 'hidden' );
-			qr.setAttribute( 'aria-hidden', 'false' );
-		} else {
-			qr.setAttribute( 'hidden', '' );
-			qr.setAttribute( 'aria-hidden', 'true' );
-		}
-		toggle.setAttribute( 'aria-expanded', willShow ? 'true' : 'false' );
-		toggle.classList.toggle( 'is-open', willShow );
-		if ( labelEl ) {
-			labelEl.textContent = willShow ? 'Hide QR code' : 'Show QR code';
-		}
-	} );
+	try {
+		host.innerHTML = renderSVG( uri, { border: 2 } );
+		wrap.removeAttribute( 'hidden' );
+		wrap.setAttribute( 'aria-hidden', 'false' );
+	} catch ( e ) {
+		// Leave the QR hidden if it can't be built.
+	}
 }
 
-function enhance( root ) {
+function enhance( root: HTMLElement ): void {
 	const uri = root.getAttribute( 'data-uri' );
 	if ( ! uri ) {
 		return;
 	}
 	enhanceCopy( root );
-	truncateAddress( root );
-	const fiat = root.querySelector( '.chainkit-bpb__fiat' );
+	const fiat = root.querySelector< HTMLElement >( '.chainkit-bpb__fiat' );
 	if ( fiat ) {
 		enhanceFiat( root, fiat );
 	}
-	enhanceQr( root, uri );
+	renderQr( root, uri );
 }
 
-function init() {
-	document.querySelectorAll( '.chainkit-bpb[data-uri]' ).forEach( enhance );
+function init(): void {
+	document
+		.querySelectorAll< HTMLElement >( '.chainkit-bpb[data-uri]' )
+		.forEach( enhance );
 }
 
 if ( document.readyState === 'loading' ) {

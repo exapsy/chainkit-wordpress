@@ -1,10 +1,11 @@
 /**
  * Frontend + shared styles for the Bitcoin Payment Button.
  *
- * A compact, embeddable payment widget. Design language: one lime accent spent
- * deliberately (the top "ledger line" echoing chainkit's mark, a live-rate dot,
- * focus rings, the currency-switch underline), a neutral high-contrast CTA, and
- * a monospace amount that reads as precise and on-chain. Theme-aware
+ * A compact, embeddable payment widget. One lime accent, spent deliberately:
+ * the top "ledger line" (echoing chainkit's mark), the live-rate dot, focus
+ * rings, and the currency-switch underline. The body is a two-column layout —
+ * QR on the left, amount + CTA on the right — that collapses to a single stack
+ * when the widget is embedded in a narrow column (container query). Theme-aware
  * (light / dark / auto) and scoped under .chainkit-bpb so nothing leaks
  * into the host theme.
  */
@@ -23,7 +24,7 @@ $lime: #bfdb00;
 	--ck-cta-bg: #f5f5f0;
 	--ck-cta-fg: #0f1c33;
 	--ck-accent-ink: #bfdb00;
-	--ck-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.28);
+	--ck-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .chainkit-bpb {
@@ -38,15 +39,15 @@ $lime: #bfdb00;
 	--ck-cta-bg: #0f1c33;
 	--ck-cta-fg: #f5f5f0;
 	--ck-accent-ink: #6a7a00;
-	--ck-shadow: 0 1px 2px rgba(15, 28, 51, 0.06), 0 6px 20px rgba(15, 28, 51, 0.07);
+	--ck-shadow: 0 1px 2px rgba(15, 28, 51, 0.06), 0 10px 30px rgba(15, 28, 51, 0.08);
 
 	box-sizing: border-box;
+	container-type: inline-size;
 	position: relative;
 	display: block;
 	width: 100%;
-	max-width: 380px;
 	margin: 0;
-	padding: 20px;
+	padding: 22px;
 	overflow: hidden;
 	border: 1px solid var(--ck-rule);
 	border-radius: 16px;
@@ -71,7 +72,6 @@ $lime: #bfdb00;
 		background: var(--ck-lime);
 	}
 
-	// ---- Dark tokens ----
 	&--theme-dark {
 
 		@include ck-dark;
@@ -100,7 +100,7 @@ $lime: #bfdb00;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 16px;
+		margin-bottom: 18px;
 	}
 
 	&__eyebrow {
@@ -135,14 +135,68 @@ $lime: #bfdb00;
 		color: var(--ck-fg-3);
 	}
 
+	// ---- Body: QR (left) + pay column (right) ----
+	&__body {
+		display: flex;
+		align-items: center;
+		gap: 20px;
+		margin-bottom: 18px;
+	}
+
+	&__pay {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	// ---- QR (rendered + revealed by JS; absent, not collapsed, without JS) ----
+	&__qr {
+		flex: 0 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+
+		&[hidden] {
+			display: none;
+		}
+	}
+
+	&__qr-svg {
+		width: 128px;
+		height: 128px;
+		padding: 9px;
+		border-radius: 12px;
+		background: #fff;
+		border: 1px solid var(--ck-rule);
+
+		svg {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+	}
+
+	&__qr-cap {
+		font-size: 10px;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--ck-fg-3);
+	}
+
 	// ---- Amount ----
 	&__amount {
-		margin-bottom: 18px;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
 	}
 
 	&__btc {
 		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-		font-size: 30px;
+		font-size: 27px;
 		font-weight: 600;
 		letter-spacing: -0.02em;
 		line-height: 1.05;
@@ -155,7 +209,6 @@ $lime: #bfdb00;
 		align-items: baseline;
 		flex-wrap: wrap;
 		gap: 4px;
-		margin-top: 7px;
 		font-size: 14px;
 		color: var(--ck-fg-2);
 	}
@@ -198,7 +251,7 @@ $lime: #bfdb00;
 	}
 
 	&__note {
-		margin: 8px 0 0;
+		margin: 0;
 		font-size: 11px;
 		line-height: 1.5;
 		color: var(--ck-fg-3);
@@ -217,9 +270,9 @@ $lime: #bfdb00;
 		justify-content: center;
 		gap: 8px;
 		width: 100%;
-		padding: 13px 18px;
+		padding: 12px 18px;
 		border: 0;
-		border-radius: 11px;
+		border-radius: 10px;
 		background: var(--ck-cta-bg);
 		color: var(--ck-cta-fg);
 		font-size: 15px;
@@ -252,8 +305,6 @@ $lime: #bfdb00;
 		transition: transform 0.15s ease;
 	}
 
-	// Nudge the arrow on CTA hover (declared after &__btn-arrow to keep
-	// stylelint's descending-specificity rule happy).
 	&__btn:hover &__btn-arrow {
 
 		@media (prefers-reduced-motion: no-preference) {
@@ -261,13 +312,12 @@ $lime: #bfdb00;
 		}
 	}
 
-	// ---- Address ----
+	// ---- Address (full width, shown in full) ----
 	&__addr-row {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		margin-top: 14px;
-		padding: 8px 8px 8px 12px;
+		gap: 10px;
+		padding: 9px 9px 9px 13px;
 		border: 1px solid var(--ck-rule);
 		border-radius: 10px;
 		background: var(--ck-surface-2);
@@ -277,35 +327,39 @@ $lime: #bfdb00;
 		flex: 0 0 auto;
 		font-size: 10px;
 		font-weight: 600;
-		letter-spacing: 0.12em;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--ck-fg-3);
 	}
 
 	&__addr {
-		flex: 1;
+		flex: 1 1 auto;
 		min-width: 0;
-		overflow: hidden;
+		overflow-x: auto;
 		white-space: nowrap;
-		text-overflow: ellipsis;
 		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 		font-size: 12.5px;
 		color: var(--ck-fg);
+		scrollbar-width: none;
+
+		&::-webkit-scrollbar {
+			display: none;
+		}
 	}
 
 	&__copy {
 		flex: 0 0 auto;
 		display: grid;
 		place-items: center;
-		width: 30px;
-		height: 30px;
+		width: 32px;
+		height: 32px;
 		padding: 0;
 		border: 1px solid var(--ck-rule);
 		border-radius: 8px;
 		background: var(--ck-surface);
 		color: var(--ck-fg-2);
 		cursor: pointer;
-		transition: color 0.14s ease, border-color 0.14s ease, transform 0.1s ease;
+		transition: color 0.14s ease, border-color 0.14s ease;
 
 		&:hover {
 			color: var(--ck-fg);
@@ -320,61 +374,6 @@ $lime: #bfdb00;
 		&.is-copied {
 			color: var(--ck-accent-ink);
 			border-color: var(--ck-accent-ink);
-		}
-	}
-
-	// ---- QR ----
-	&__qr-toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		margin-top: 12px;
-		padding: 0;
-		border: 0;
-		background: transparent;
-		color: var(--ck-fg-2);
-		font: inherit;
-		font-size: 12px;
-		font-weight: 600;
-		cursor: pointer;
-
-		&::before {
-			content: "";
-			width: 0;
-			height: 0;
-			border-left: 4px solid currentcolor;
-			border-top: 4px solid transparent;
-			border-bottom: 4px solid transparent;
-			transition: transform 0.15s ease;
-		}
-
-		&.is-open::before {
-			transform: rotate(90deg);
-		}
-
-		&:hover {
-			color: var(--ck-fg);
-		}
-
-		&:focus-visible {
-			outline: 2px solid var(--ck-lime);
-			outline-offset: 2px;
-		}
-	}
-
-	&__qr {
-		width: 168px;
-		max-width: 100%;
-		margin-top: 12px;
-		padding: 12px;
-		border-radius: 12px;
-		background: #fff;
-		border: 1px solid var(--ck-rule);
-
-		svg {
-			display: block;
-			width: 100%;
-			height: auto;
 		}
 	}
 
@@ -408,6 +407,27 @@ $lime: #bfdb00;
 			}
 		}
 	}
+
+	// ---- Narrow embeds: stack the body ----
+	@container (max-width: 359px) {
+
+		&__body {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 16px;
+		}
+
+		&__qr {
+			align-self: center;
+		}
+	}
+}
+
+// Doubled class raises specificity above the block-editor "constrained layout"
+// rule (equal specificity, but it loads after us) that would otherwise stretch
+// the widget to the theme's full content width.
+.chainkit-bpb.chainkit-bpb {
+	max-width: 500px;
 }
 
 .chainkit-bpb .screen-reader-text {

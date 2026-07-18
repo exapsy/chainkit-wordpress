@@ -1,5 +1,5 @@
 /**
- * Unit tests for the BIP21 URI builder (src/lib/bip21.js).
+ * Unit tests for the BIP21 URI builder (src/lib/bip21.ts).
  *
  * These are the canonical known-good cases from the plan — the plugin must
  * produce byte-identical URIs to the chainkit web tool. Run with

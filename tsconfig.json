@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"target": "esnext",
+		"module": "esnext",
+		"moduleResolution": "node",
+		"lib": [ "esnext", "dom", "dom.iterable" ],
+		"jsx": "react-jsx",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"allowJs": false,
+		"types": [ "@wordpress/element", "jest" ]
+	},
+	"include": [ "src", "tests/**/*.ts" ],
+	"exclude": [ "node_modules", "build" ]
+}
