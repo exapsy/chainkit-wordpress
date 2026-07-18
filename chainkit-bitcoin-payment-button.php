@@ -87,8 +87,36 @@ function chainkit_bpb_defaults() {
 		'buttonAlign' => 'left', // left | center | right.
 		'theme'      => 'auto', // auto | light | dark.
 		'showQr'     => true,
-		'showPowered'=> true,
+		'showPowered' => true,
+		// Payer-decides amount picker (only used when amountMode === 'none').
+		'pickerUnit'     => 'fiat',        // fiat | btc — the unit presets/range/free are in.
+		'presetsEnabled' => true,
+		'presetValues'   => '1, 2, 5, 10', // Comma-separated amounts in pickerUnit.
+		'rangeEnabled'   => false,
+		'rangeMin'       => '1',
+		'rangeMax'       => '100',
+		'freeEnabled'    => true,
 	);
+}
+
+/**
+ * Parse a comma-separated preset string into a de-duplicated, sorted list of
+ * positive numbers. "1, 2, 5, 10" → [1.0, 2.0, 5.0, 10.0].
+ *
+ * @param string $str Raw preset string.
+ * @return float[]
+ */
+function chainkit_bpb_parse_presets( $str ) {
+	$out = array();
+	foreach ( explode( ',', (string) $str ) as $token ) {
+		$token = trim( $token );
+		if ( '' !== $token && is_numeric( $token ) && (float) $token > 0 ) {
+			$out[] = (float) $token;
+		}
+	}
+	$out = array_values( array_unique( $out, SORT_NUMERIC ) );
+	sort( $out, SORT_NUMERIC );
+	return $out;
 }
 
 /*
@@ -214,40 +242,67 @@ function chainkit_bpb_prepare( $atts ) {
 		}
 	}
 
-	$btc      = null;   // On-chain amount encoded in the URI.
-	$btc_text = '';     // Big primary display, e.g. "0.005 BTC".
-	$approx   = false;  // True when a live rate is involved (label as approximate).
+	$has_rate = isset( $rates[ $currency ] ) && $rates[ $currency ] > 0;
 
-	if ( 'btc' === $mode ) {
+	$btc        = null;   // On-chain amount encoded in the URI (null = payer decides).
+	$hero_text  = '';     // The big headline: leads with what the merchant chose.
+	$sub_text   = '';     // Secondary line under the headline.
+	$sub_switch = false;  // True → the sub line is the client-switchable fiat reference.
+	$approx     = false;  // True → show the "rate not locked" note (BTC is rate-derived).
+	$picker     = array( 'enabled' => false );
+
+	if ( 'fiat' === $mode ) {
+		// Merchant priced in fiat → fiat leads, BTC is the precise secondary line.
+		$fiat = is_numeric( $a['amountFiat'] ) ? (float) $a['amountFiat'] : 0.0;
+		if ( $fiat > 0 ) {
+			$hero_text = chainkit_bpb_format_fiat( $fiat, $currency );
+			if ( $has_rate ) {
+				$btc      = $fiat / $rates[ $currency ];
+				$sub_text = '≈ ' . chainkit_bpb_format_btc( $btc ) . ' BTC';
+				$approx   = true;
+			} else {
+				$sub_text = __( 'Live rate unavailable — enter the amount in your wallet.', 'chainkit-bitcoin-payment-button' );
+			}
+		}
+	} elseif ( 'btc' === $mode ) {
+		// Merchant fixed a BTC amount → BTC leads (exact), fiat is a switchable ref.
 		$v = is_numeric( $a['amountBtc'] ) ? (float) $a['amountBtc'] : 0.0;
 		if ( $v > 0 ) {
-			$btc      = $v;
-			$btc_text = chainkit_bpb_format_btc( $v ) . ' BTC';
+			$btc       = $v;
+			$hero_text = chainkit_bpb_format_btc( $v ) . ' BTC';
+			if ( $has_rate ) {
+				$sub_text   = '≈ ' . chainkit_bpb_format_fiat( $v * $rates[ $currency ], $currency );
+				$sub_switch = true;
+			}
 		}
-	} elseif ( 'fiat' === $mode ) {
-		$fiat = is_numeric( $a['amountFiat'] ) ? (float) $a['amountFiat'] : 0.0;
-		if ( $fiat > 0 && isset( $rates[ $currency ] ) ) {
-			$btc      = $fiat / $rates[ $currency ];
-			$btc_text = chainkit_bpb_format_btc( $btc ) . ' BTC';
-			$approx   = true;
+	} else {
+		// Payer decides → an on-page picker (JS-enhanced). No amount on the URI by
+		// default; without JS the payer enters it in their wallet.
+		$hero_text = __( 'Any amount', 'chainkit-bitcoin-payment-button' );
+		$unit      = 'btc' === $a['pickerUnit'] ? 'btc' : 'fiat';
+		$presets   = filter_var( $a['presetsEnabled'], FILTER_VALIDATE_BOOLEAN ) ? chainkit_bpb_parse_presets( $a['presetValues'] ) : array();
+		$range_on  = (bool) filter_var( $a['rangeEnabled'], FILTER_VALIDATE_BOOLEAN );
+		$free_on   = (bool) filter_var( $a['freeEnabled'], FILTER_VALIDATE_BOOLEAN );
+		$min       = is_numeric( $a['rangeMin'] ) ? max( 0.0, (float) $a['rangeMin'] ) : 0.0;
+		$max       = is_numeric( $a['rangeMax'] ) ? (float) $a['rangeMax'] : 0.0;
+		if ( $max <= $min ) {
+			$range_on = false;
 		}
-	}
-
-	// Server-rendered (no-JS) fiat reference. view.js replaces it with a
-	// locale-guessed, switchable version. For a fixed amount this is the value of
-	// that amount; with no amount it's the price of 1 BTC.
-	$ref_text = '';
-	if ( isset( $rates[ $currency ] ) ) {
-		if ( null !== $btc ) {
-			$ref_text = '≈ ' . chainkit_bpb_format_fiat( $btc * $rates[ $currency ], $currency );
-			$approx   = true;
-		} elseif ( 'none' === $mode ) {
-			$ref_text = sprintf(
-				/* translators: %s: formatted price of one bitcoin, e.g. "£53,400". */
-				__( '1 BTC ≈ %s', 'chainkit-bitcoin-payment-button' ),
-				chainkit_bpb_format_fiat( $rates[ $currency ], $currency )
+		// 'fiat' unit needs a live rate to convert the payer's choice to BTC.
+		$usable = ( 'btc' === $unit ) || $has_rate;
+		if ( $usable && ( $presets || $range_on || $free_on ) ) {
+			$picker = array(
+				'enabled' => true,
+				'unit'    => $unit,
+				'presets' => $presets,
+				'range'   => $range_on,
+				'min'     => $min,
+				'max'     => $max,
+				'free'    => $free_on,
 			);
-			$approx = true;
+			$approx = 'fiat' === $unit; // fiat picks are converted at a live rate.
+		} else {
+			$sub_text = __( 'Enter the amount in your wallet.', 'chainkit-bitcoin-payment-button' );
 		}
 	}
 
@@ -267,11 +322,15 @@ function chainkit_bpb_prepare( $atts ) {
 		'uri'          => chainkit_bpb_build_uri( $addr, $btc, $a['label'], $a['message'] ),
 		'mode'         => $mode,
 		'btc'          => $btc,
-		'btc_text'     => $btc_text,
-		'ref_currency' => $currency,
-		'ref_text'     => $ref_text,
+		'hero_text'    => $hero_text,
+		'sub_text'     => $sub_text,
+		'sub_switch'   => $sub_switch,
 		'approx'       => $approx,
+		'ref_currency' => $currency,
 		'rates'        => $rates,
+		'label'        => (string) $a['label'],
+		'message'      => (string) $a['message'],
+		'picker'       => $picker,
 		'button_text'  => $button_text,
 		'align'        => $align,
 		'theme'        => $theme,
@@ -308,7 +367,7 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 	// A wallet-open arrow.
 	$arrow = '<svg class="chainkit-bpb__btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-	$has_amount = ( '' !== $p['btc_text'] || '' !== $p['ref_text'] );
+	$has_amount = ( '' !== $p['hero_text'] || '' !== $p['sub_text'] || $p['picker']['enabled'] );
 
 	ob_start();
 	?>
@@ -319,6 +378,9 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 		echo $wrapper ? $wrapper : 'class="' . esc_attr( $classes ) . '"'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		?>
 		data-uri="<?php echo esc_attr( $p['uri'] ); ?>"
+		data-address="<?php echo esc_attr( $p['addr'] ); ?>"
+		data-label="<?php echo esc_attr( $p['label'] ); ?>"
+		data-message="<?php echo esc_attr( $p['message'] ); ?>"
 		data-btc="<?php echo esc_attr( null !== $p['btc'] ? chainkit_bpb_format_btc( $p['btc'] ) : '' ); ?>"
 		data-mode="<?php echo esc_attr( $p['mode'] ); ?>"
 		data-ref-currency="<?php echo esc_attr( $p['ref_currency'] ); ?>"
@@ -344,12 +406,19 @@ function chainkit_bpb_render( $atts, $wrapper = null ) {
 			<div class="chainkit-bpb__pay">
 				<?php if ( $has_amount ) : ?>
 					<div class="chainkit-bpb__amount">
-						<?php if ( '' !== $p['btc_text'] ) : ?>
-							<div class="chainkit-bpb__btc"><?php echo esc_html( $p['btc_text'] ); ?></div>
+						<?php if ( '' !== $p['hero_text'] ) : ?>
+							<div class="chainkit-bpb__hero" data-hero><?php echo esc_html( $p['hero_text'] ); ?></div>
 						<?php endif; ?>
-						<?php if ( '' !== $p['ref_text'] ) : ?>
-							<div class="chainkit-bpb__fiat" data-fiat><?php echo esc_html( $p['ref_text'] ); ?></div>
+
+						<?php if ( $p['picker']['enabled'] ) : ?>
+							<?php // JS builds the controls from data-picker and reveals this. ?>
+							<div class="chainkit-bpb__picker" data-picker="<?php echo esc_attr( (string) wp_json_encode( $p['picker'] ) ); ?>" hidden></div>
 						<?php endif; ?>
+
+						<?php if ( '' !== $p['sub_text'] || $p['picker']['enabled'] ) : ?>
+							<div class="chainkit-bpb__sub<?php echo $p['sub_switch'] ? ' chainkit-bpb__fiat' : ''; ?>"<?php echo $p['sub_switch'] ? ' data-fiat' : ''; ?> data-sub><?php echo esc_html( $p['sub_text'] ); ?></div>
+						<?php endif; ?>
+
 						<?php if ( $p['approx'] ) : ?>
 							<p class="chainkit-bpb__note">
 								<?php esc_html_e( 'Approximate — rate not locked.', 'chainkit-bitcoin-payment-button' ); ?>
@@ -451,6 +520,13 @@ add_shortcode(
 				'theme'        => $s['theme'],
 				'show_qr'      => 'true',
 				'show_powered' => $s['show_powered'] ? 'true' : 'false',
+				'picker_unit'     => 'fiat',
+				'presets_enabled' => 'true',
+				'preset_values'   => '1, 2, 5, 10',
+				'range_enabled'   => 'false',
+				'range_min'       => '1',
+				'range_max'       => '100',
+				'free_enabled'    => 'true',
 			),
 			$atts,
 			'chainkit_bitcoin_button'
@@ -491,6 +567,13 @@ add_shortcode(
 				'theme'       => $atts['theme'],
 				'showQr'      => $atts['show_qr'],
 				'showPowered' => $atts['show_powered'],
+				'pickerUnit'     => $atts['picker_unit'],
+				'presetsEnabled' => $atts['presets_enabled'],
+				'presetValues'   => $atts['preset_values'],
+				'rangeEnabled'   => $atts['range_enabled'],
+				'rangeMin'       => $atts['range_min'],
+				'rangeMax'       => $atts['range_max'],
+				'freeEnabled'    => $atts['free_enabled'],
 			)
 		);
 	}

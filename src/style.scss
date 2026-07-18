@@ -191,10 +191,11 @@ $lime: #bfdb00;
 	&__amount {
 		display: flex;
 		flex-direction: column;
-		gap: 6px;
+		gap: 8px;
 	}
 
-	&__btc {
+	// The headline — leads with what the merchant chose (fiat / BTC / any).
+	&__hero {
 		font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 		font-size: 27px;
 		font-weight: 600;
@@ -202,6 +203,18 @@ $lime: #bfdb00;
 		line-height: 1.05;
 		font-variant-numeric: tabular-nums;
 		color: var(--ck-fg);
+	}
+
+	// Secondary line under the headline (static). The switchable variant also
+	// carries &__fiat and is enhanced by JS.
+	&__sub {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 4px;
+		font-size: 14px;
+		font-variant-numeric: tabular-nums;
+		color: var(--ck-fg-2);
 	}
 
 	&__fiat {
@@ -261,6 +274,91 @@ $lime: #bfdb00;
 			text-decoration: underline;
 			text-underline-offset: 2px;
 		}
+	}
+
+	// ---- Payer-decides amount picker ----
+	&__picker {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+
+		&[hidden] {
+			display: none;
+		}
+	}
+
+	&__presets {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+
+	&__preset {
+		padding: 6px 12px;
+		border: 1px solid var(--ck-rule);
+		border-radius: 8px;
+		background: var(--ck-surface-2);
+		color: var(--ck-fg);
+		font: inherit;
+		font-size: 13px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		cursor: pointer;
+		transition: border-color 0.12s ease, background 0.12s ease;
+
+		&:hover {
+			border-color: var(--ck-fg-3);
+		}
+
+		&.is-active {
+			border-color: var(--ck-lime);
+			box-shadow: inset 0 0 0 1px var(--ck-lime);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--ck-lime);
+			outline-offset: 2px;
+		}
+	}
+
+	&__range-input {
+		width: 100%;
+		accent-color: var(--ck-lime);
+		cursor: pointer;
+	}
+
+	&__free {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 10px 7px 12px;
+		border: 1px solid var(--ck-rule);
+		border-radius: 8px;
+		background: var(--ck-surface-2);
+	}
+
+	&__free-input {
+		flex: 1 1 auto;
+		min-width: 0;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		color: var(--ck-fg);
+		font: inherit;
+		font-size: 14px;
+		font-variant-numeric: tabular-nums;
+
+		&:focus {
+			outline: none;
+		}
+	}
+
+	&__free-unit {
+		flex: 0 0 auto;
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		color: var(--ck-fg-3);
 	}
 
 	// ---- CTA ----

@@ -19,8 +19,11 @@ Funds go **straight to your own Bitcoin address**. This plugin never touches you
 = Features =
 
 * **Gutenberg block** and **`[chainkit_bitcoin_button]` shortcode** (Classic editor / page builders).
-* **Three amount modes:** let the payer decide, a **fixed BTC amount**, or a **fiat amount** (USD, EUR, GBP, JPY, CAD) converted at the live rate.
-* **Local-currency display:** the amount shows a fiat reference guessed from the visitor's own browser language, and they can switch currencies — converted entirely in their browser, with nothing sent anywhere.
+* **Three amount modes, each clearly distinct:**
+  * **Fiat price** — you price in USD/EUR/GBP/JPY/CAD (e.g. €49); the button leads with your price and shows the BTC underneath.
+  * **Fixed BTC** — you set an exact amount (e.g. 0.005 BTC); the button leads with BTC and shows a switchable local-currency reference.
+  * **Payer decides** — an on-page amount picker: **preset buttons**, a **slider (range)**, and/or a **custom amount field**, in your currency or in BTC. Picking updates the button and QR live. Perfect for donations and tips.
+* **Local-currency display:** in fixed-BTC mode the reference is guessed from the visitor's own browser language and is switchable — converted entirely in their browser, with nothing sent anywhere.
 * **Global settings:** set your Bitcoin address (and default currency, theme, and button text) once under Settings → Bitcoin Payment Button; every button uses it unless overridden.
 * **Scannable QR code** encoding the exact same payment request.
 * **Copy-address button** and a plain `bitcoin:` link that **works even with JavaScript disabled**.
@@ -81,9 +84,11 @@ Not with a static button — no page-embedded button can. The fiat conversion is
 
 `address`, `amount_mode` (`none` | `btc` | `fiat`), `amount_btc`, `amount_fiat`, `currency` (`USD`/`EUR`/`GBP`/`JPY`/`CAD`), `label`, `message`, `button_text`, `align` (`left`/`center`/`right`), `theme` (`auto`/`light`/`dark`), `show_qr` (`true`/`false`), `show_powered` (`true`/`false`).
 
+For the payer-decides picker (`amount_mode="none"`): `picker_unit` (`fiat`/`btc`), `presets_enabled` (`true`/`false`), `preset_values` (e.g. `"1, 2, 5, 10"`), `range_enabled` (`true`/`false`), `range_min`, `range_max`, `free_enabled` (`true`/`false`).
+
 = Does it work without JavaScript? =
 
-Yes. The `bitcoin:` link and the copyable address are rendered server-side, so the button works with JavaScript disabled. JavaScript only adds the QR code, the one-tap copy, and the currency switcher.
+Yes. The `bitcoin:` link and the copyable address are rendered server-side, so the button works with JavaScript disabled. JavaScript adds the QR code, the one-tap copy, the currency switcher, and the payer-decides amount picker — without it, a payer simply enters the amount in their wallet.
 
 = Does it track my visitors? =
 
@@ -98,7 +103,7 @@ No. The plugin sets no cookies and sends no visitor data anywhere. The exchange 
 == Changelog ==
 
 = 1.0.0 =
-* Initial release: Gutenberg block + `[chainkit_bitcoin_button]` shortcode, BIP21 link and QR, none/BTC/fiat amount modes, server-side cached fiat conversion, in-browser local-currency switcher (no tracking), global settings screen, light/dark/auto themes, no-JS fallback.
+* Initial release: Gutenberg block + `[chainkit_bitcoin_button]` shortcode, BIP21 link and QR, three distinct amount modes (fiat price / fixed BTC / payer-decides picker with presets, range, and custom input), server-side cached fiat conversion, in-browser local-currency switcher (no tracking), global settings screen, light/dark/auto themes, no-JS fallback.
 
 == Upgrade Notice ==
 

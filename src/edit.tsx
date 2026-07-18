@@ -38,9 +38,37 @@ export interface Attributes {
 	theme: Theme;
 	showQr: boolean;
 	showPowered: boolean;
+	pickerUnit: 'fiat' | 'btc';
+	presetsEnabled: boolean;
+	presetValues: string;
+	rangeEnabled: boolean;
+	rangeMin: string;
+	rangeMax: string;
+	freeEnabled: boolean;
 	// Block attributes are an open string-keyed bag; the index signature lets
 	// this satisfy registerBlockType's `Record<string, unknown>` constraint.
 	[ key: string ]: unknown;
+}
+
+/**
+ * Localised fiat formatting for the editor preview (mirrors view.ts).
+ * @param value
+ * @param currency
+ */
+function fmtFiat( value: number, currency: string ): string {
+	try {
+		return new Intl.NumberFormat( undefined, {
+			style: 'currency',
+			currency,
+			minimumFractionDigits: 0,
+			maximumFractionDigits:
+				currency === 'JPY' || value >= 100 || Number.isInteger( value )
+					? 0
+					: 2,
+		} ).format( value );
+	} catch ( e ) {
+		return `${ value } ${ currency }`;
+	}
 }
 
 const CURRENCIES: string[] = [ 'USD', 'EUR', 'GBP', 'JPY', 'CAD' ];
@@ -63,6 +91,13 @@ export default function Edit( {
 		theme,
 		showQr,
 		showPowered,
+		pickerUnit,
+		presetsEnabled,
+		presetValues,
+		rangeEnabled,
+		rangeMin,
+		rangeMax,
+		freeEnabled,
 	} = attributes;
 
 	const [ rates, setRates ] = useState< Record< string, number > | null >(
@@ -105,20 +140,50 @@ export default function Edit( {
 	const addr = ( address || '' ).trim();
 	const addrValid = addrLooksValid( addr );
 
-	// Resolve the preview BTC amount from the active mode.
+	// Resolve the preview headline + secondary line, matching the frontend:
+	// fiat leads in fiat mode, BTC leads in BTC mode, "Any amount" for the picker.
 	let btcAmount: number | null = null;
-	let approxNote = '';
+	let heroText = '';
+	let subText = '';
+	let isApprox = false;
 	if ( amountMode === 'btc' ) {
 		const v = parseFloat( amountBtc );
-		btcAmount = isFinite( v ) && v > 0 ? v : null;
+		if ( isFinite( v ) && v > 0 ) {
+			btcAmount = v;
+			heroText = `${ formatBtc( v ) } BTC`;
+			const rate = rates?.[ currency ];
+			if ( rate && rate > 0 ) {
+				subText = `≈ ${ fmtFiat( v * rate, currency ) }`;
+			}
+		}
 	} else if ( amountMode === 'fiat' ) {
 		const f = parseFloat( amountFiat );
-		const rate = rates?.[ currency ];
-		if ( isFinite( f ) && f > 0 && rate && rate > 0 ) {
-			btcAmount = f / rate;
-			approxNote = `≈ ${ formatBtc( btcAmount ) } BTC · approximate`;
+		if ( isFinite( f ) && f > 0 ) {
+			heroText = fmtFiat( f, currency );
+			const rate = rates?.[ currency ];
+			if ( rate && rate > 0 ) {
+				btcAmount = f / rate;
+				subText = `≈ ${ formatBtc( btcAmount ) } BTC`;
+				isApprox = true;
+			}
 		}
+	} else {
+		heroText = __( 'Any amount', 'chainkit-bitcoin-payment-button' );
 	}
+
+	// Preview chips for the picker (payer-decides mode).
+	const presetChips =
+		amountMode === 'none' && presetsEnabled
+			? presetValues
+					.split( ',' )
+					.map( ( s ) => parseFloat( s.trim() ) )
+					.filter( ( n ) => isFinite( n ) && n > 0 )
+					.map( ( n ) =>
+						pickerUnit === 'btc'
+							? `${ formatBtc( n ) } BTC`
+							: fmtFiat( n, currency )
+					)
+			: [];
 
 	const uri = buildURI( addr, btcAmount, label, message );
 
@@ -249,6 +314,112 @@ export default function Edit( {
 									) }
 								</Notice>
 							) }
+						</>
+					) }
+
+					{ amountMode === 'none' && (
+						<>
+							<SelectControl
+								label={ __(
+									'Amounts in',
+									'chainkit-bitcoin-payment-button'
+								) }
+								value={ pickerUnit }
+								options={ [
+									{
+										label: `${ currency } (fiat)`,
+										value: 'fiat',
+									},
+									{ label: 'BTC', value: 'btc' },
+								] }
+								onChange={ ( v ) =>
+									setAttributes( {
+										pickerUnit: v as 'fiat' | 'btc',
+									} )
+								}
+								help={ __(
+									'The unit for the amounts a payer chooses.',
+									'chainkit-bitcoin-payment-button'
+								) }
+								__nextHasNoMarginBottom
+							/>
+							<ToggleControl
+								label={ __(
+									'Preset amounts',
+									'chainkit-bitcoin-payment-button'
+								) }
+								checked={ presetsEnabled }
+								onChange={ ( v ) =>
+									setAttributes( { presetsEnabled: v } )
+								}
+								__nextHasNoMarginBottom
+							/>
+							{ presetsEnabled && (
+								<TextControl
+									label={ __(
+										'Preset values (comma-separated)',
+										'chainkit-bitcoin-payment-button'
+									) }
+									value={ presetValues }
+									onChange={ ( v ) =>
+										setAttributes( { presetValues: v } )
+									}
+									placeholder="1, 2, 5, 10"
+									__nextHasNoMarginBottom
+								/>
+							) }
+							<ToggleControl
+								label={ __(
+									'Slider (range)',
+									'chainkit-bitcoin-payment-button'
+								) }
+								checked={ rangeEnabled }
+								onChange={ ( v ) =>
+									setAttributes( { rangeEnabled: v } )
+								}
+								__nextHasNoMarginBottom
+							/>
+							{ rangeEnabled && (
+								<>
+									<TextControl
+										label={ __(
+											'Minimum',
+											'chainkit-bitcoin-payment-button'
+										) }
+										type="number"
+										min="0"
+										value={ rangeMin }
+										onChange={ ( v ) =>
+											setAttributes( { rangeMin: v } )
+										}
+										__nextHasNoMarginBottom
+									/>
+									<TextControl
+										label={ __(
+											'Maximum',
+											'chainkit-bitcoin-payment-button'
+										) }
+										type="number"
+										min="0"
+										value={ rangeMax }
+										onChange={ ( v ) =>
+											setAttributes( { rangeMax: v } )
+										}
+										__nextHasNoMarginBottom
+									/>
+								</>
+							) }
+							<ToggleControl
+								label={ __(
+									'Custom amount field',
+									'chainkit-bitcoin-payment-button'
+								) }
+								checked={ freeEnabled }
+								onChange={ ( v ) =>
+									setAttributes( { freeEnabled: v } )
+								}
+								__nextHasNoMarginBottom
+							/>
 						</>
 					) }
 				</PanelBody>
@@ -423,20 +594,42 @@ export default function Edit( {
 								</div>
 							) }
 							<div className="chainkit-bpb__pay">
-								{ ( btcAmount || approxNote ) && (
-									<div className="chainkit-bpb__amount">
-										{ btcAmount && (
-											<div className="chainkit-bpb__btc">
-												{ formatBtc( btcAmount ) } BTC
-											</div>
-										) }
-										{ approxNote && (
-											<div className="chainkit-bpb__fiat">
-												{ approxNote }
-											</div>
-										) }
-									</div>
-								) }
+								<div className="chainkit-bpb__amount">
+									{ heroText && (
+										<div className="chainkit-bpb__hero">
+											{ heroText }
+										</div>
+									) }
+									{ presetChips.length > 0 && (
+										<div className="chainkit-bpb__presets">
+											{ presetChips.map( ( chip, i ) => (
+												<span
+													key={ i }
+													className={ `chainkit-bpb__preset${
+														i === 0
+															? ' is-active'
+															: ''
+													}` }
+												>
+													{ chip }
+												</span>
+											) ) }
+										</div>
+									) }
+									{ subText && (
+										<div className="chainkit-bpb__sub">
+											{ subText }
+										</div>
+									) }
+									{ isApprox && (
+										<div className="chainkit-bpb__note">
+											{ __(
+												'Approximate — rate not locked.',
+												'chainkit-bitcoin-payment-button'
+											) }
+										</div>
+									) }
+								</div>
 								<span
 									className="chainkit-bpb__btn"
 									role="button"

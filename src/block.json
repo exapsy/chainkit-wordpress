@@ -29,7 +29,14 @@
 		"buttonAlign": { "type": "string", "default": "left" },
 		"theme":       { "type": "string", "default": "auto" },
 		"showQr":      { "type": "boolean", "default": true },
-		"showPowered": { "type": "boolean", "default": true }
+		"showPowered": { "type": "boolean", "default": true },
+		"pickerUnit":     { "type": "string", "default": "fiat" },
+		"presetsEnabled": { "type": "boolean", "default": true },
+		"presetValues":   { "type": "string", "default": "1, 2, 5, 10" },
+		"rangeEnabled":   { "type": "boolean", "default": false },
+		"rangeMin":       { "type": "string", "default": "1" },
+		"rangeMax":       { "type": "string", "default": "100" },
+		"freeEnabled":    { "type": "boolean", "default": true }
 	},
 	"editorScript": "file:./index.js",
 	"editorStyle": "file:./index.css",
